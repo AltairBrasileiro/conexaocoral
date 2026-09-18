@@ -1,0 +1,8 @@
+streamlit>=1.57
+pandas>=2.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+requests>=2.32
+psycopg[binary,pool]>=3.2
+folium>=0.19
+streamlit-folium>=0.25

@@ -1,0 +1,31 @@
+# Ambientes Python
+.venv/
+venv/
+env/
+
+# Cache e arquivos gerados
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Segredos e variáveis locais
+.env
+.env.*
+!.env.example
+
+# Banco local e dados persistentes
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Configurações e arquivos do editor
+.vscode/
+.idea/
+*.code-workspace
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

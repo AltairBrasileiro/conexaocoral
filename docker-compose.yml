@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: conexao-coral-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: conexao_coral
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - conexao_coral_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  conexao_coral_postgres_data:
