@@ -1,0 +1,18 @@
+{% load coral %}
+{% comment %}Card preto: tudo sobre o preto é branco; o contador vermelho fica num selo branco.{% endcomment %}
+<article class="jogo">
+  <div class="jogo__topo">
+    <span class="jogo__campeonato">{{ partida.campeonato|upper }}</span>
+    {% include "web/_mando.html" %}
+  </div>
+  <h3 class="jogo__confronto">{{ partida|confronto }}</h3>
+  <div class="jogo__infos">
+    <span><span class="icon">event</span>{{ partida.data_hora|dia_hora }}</span>
+    {% if partida.canal_transmissao %}<span><span class="icon">live_tv</span>{{ partida.canal_transmissao }}</span>{% endif %}
+  </div>
+  <div class="jogo__contador">
+    <span class="icon">how_to_reg</span>
+    <strong>{{ total_checkins }}</strong>
+    <span>{% if total_checkins == 1 %}check-in confirmado aqui{% else %}check-ins confirmados aqui{% endif %}</span>
+  </div>
+</article>

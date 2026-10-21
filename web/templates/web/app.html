@@ -1,0 +1,50 @@
+{% extends "web/base.html" %}
+{% load coral %}
+{% comment %}
+  Casca das páginas logadas: barra preta → faixa branca → faixa vermelha
+  (o preto nunca encosta no vermelho). A navegação fica no topo em telas largas
+  e vira uma barra inferior no celular.
+{% endcomment %}
+{% block corpo %}
+<header class="topo">
+  <div class="topo__barra">
+    <a class="marca" href="{% url 'web:consulados' %}">
+      {% include "web/_emblema.html" with tamanho=34 %}
+      <span>Conexão Coral</span>
+    </a>
+    <nav class="abas" aria-label="Navegação principal">
+      <a class="aba{% if aba == 'consulados' %} ativa{% endif %}" href="{% url 'web:consulados' %}"{% if aba == 'consulados' %} aria-current="page"{% endif %}>
+        <span class="icon">map</span><span>Consulados</span>
+      </a>
+      <a class="aba{% if aba == 'partidas' %} ativa{% endif %}" href="{% url 'web:partidas' %}"{% if aba == 'partidas' %} aria-current="page"{% endif %}>
+        <span class="icon">sports_soccer</span><span>Partidas</span>
+      </a>
+      <a class="aba{% if aba == 'aliados' %} ativa{% endif %}" href="{% url 'web:aliados' %}"{% if aba == 'aliados' %} aria-current="page"{% endif %}>
+        <span class="icon">storefront</span><span>Aliados</span>
+      </a>
+      {% if user.is_admin or user.is_responsavel_consulado %}
+      <a class="aba{% if aba == 'painel' %} ativa{% endif %}" href="{% url 'web:painel' %}"{% if aba == 'painel' %} aria-current="page"{% endif %}>
+        <span class="icon">dashboard</span><span>Painel</span>
+      </a>
+      {% endif %}
+    </nav>
+    <details class="perfil">
+      <summary aria-label="Minha conta" title="Minha conta">{{ user.nome|inicial }}</summary>
+      <div class="perfil__menu">
+        <strong>{{ user.nome }}</strong>
+        <small>{{ user|papel }}</small>
+        <small class="perfil__email">{{ user.email }}</small>
+        {% if user.is_staff %}<a class="perfil__item" href="{% url 'admin:index' %}"><span class="icon">admin_panel_settings</span>Administração</a>{% endif %}
+        <form method="post" action="{% url 'web:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="perfil__item"><span class="icon">logout</span>Sair</button>
+        </form>
+      </div>
+    </details>
+  </div>
+  <div class="faixa" aria-hidden="true"></div>
+</header>
+<main class="conteudo">
+  {% block conteudo %}{% endblock %}
+</main>
+{% endblock %}

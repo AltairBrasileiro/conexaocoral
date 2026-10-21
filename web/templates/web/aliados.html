@@ -1,0 +1,61 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Aliados · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina">
+  <h1 class="titulo-pagina">Vitrine da torcida</h1>
+  <p class="apoio">Negócios de torcedores tricolores. Prestigie quem veste a camisa.</p>
+
+  <form method="get" class="filtros" data-auto-enviar>
+    {% if categoria %}<input type="hidden" name="categoria" value="{{ categoria }}">{% endif %}
+    <label class="campo-busca">
+      <span class="icon">search</span>
+      <input type="search" name="q" value="{{ busca }}" placeholder="Buscar negócio" aria-label="Buscar negócio">
+    </label>
+  </form>
+
+  <nav class="chips chips--rolagem" aria-label="Categorias">
+    {% for valor, rotulo, icone in categorias %}
+      <a class="chip{% if valor == categoria %} chip--ativo{% endif %}"
+         href="?{% if valor %}categoria={{ valor }}{% endif %}{% if busca %}{% if valor %}&amp;{% endif %}q={{ busca|urlencode }}{% endif %}">
+        <span class="icon">{{ icone }}</span>{{ rotulo }}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if aliados %}
+  <div class="grade">
+    {% for aliado in aliados %}
+    <article class="card aliado">
+      <div class="aliado__topo">
+        <span class="aliado__icone"><span class="icon">{{ aliado.categoria|icone_categoria }}</span></span>
+        <div class="aliado__nome">
+          <h3>{{ aliado.nome_negocio }}</h3>
+          <small class="apoio">{{ aliado.get_categoria_display }}</small>
+        </div>
+        {% if aliado.selo_verificado %}
+          <span class="pill pill--vermelho" title="Negócio verificado pela administração"><span class="icon">verified</span>Verificado</span>
+        {% endif %}
+      </div>
+      <p class="aliado__descricao">{{ aliado.descricao }}</p>
+      <div class="aliado__acoes">
+        {% if aliado.link_instagram %}
+          <a class="botao botao--contorno botao--compacto" href="{{ aliado.link_instagram }}" target="_blank" rel="noopener"><span class="icon">photo_camera</span>Instagram</a>
+        {% else %}
+          <button type="button" class="botao botao--contorno botao--compacto" disabled><span class="icon">photo_camera</span>Instagram</button>
+        {% endif %}
+        {% if aliado.link_whatsapp %}
+          <a class="botao botao--compacto" href="{{ aliado.link_whatsapp }}" target="_blank" rel="noopener"><span class="icon">chat</span>WhatsApp</a>
+        {% else %}
+          <button type="button" class="botao botao--compacto" disabled><span class="icon">chat</span>WhatsApp</button>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% include "web/_vazio.html" with icone="storefront" titulo="Nenhum aliado nesta categoria" %}
+  {% endif %}
+</div>
+{% endblock %}

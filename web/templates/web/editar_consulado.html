@@ -1,0 +1,20 @@
+{% extends "web/app.html" %}
+{% block titulo %}Dados do bar/sede · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">Dados do bar/sede</h1>
+  <p class="apoio">{{ consulado.nome }}</p>
+
+  <form method="post" class="card card--padding formulario" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    {% for campo in form %}{% include "web/_campo.html" %}{% endfor %}
+    <div class="formulario__acoes">
+      <a class="botao-texto" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}">Cancelar</a>
+      <button type="submit" class="botao botao--compacto">Salvar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

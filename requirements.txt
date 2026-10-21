@@ -1,8 +1,16 @@
-streamlit>=1.57
-pandas>=2.0
-fastapi>=0.115
-uvicorn[standard]>=0.30
-requests>=2.32
-psycopg[binary,pool]>=3.2
-folium>=0.19
-streamlit-folium>=0.25
+# ============================================================
+# Conexão Coral - Dependências do backend
+# ============================================================
+Django>=5.2,<6.0                      # LTS
+djangorestframework>=3.15,<4.0
+djangorestframework-simplejwt>=5.3,<6.0
+django-filter>=24.2
+drf-spectacular>=0.27                 # Documentação OpenAPI / Swagger
+django-cors-headers>=4.4              # CORS para o app Flutter Web
+psycopg[binary]>=3.2                  # Driver PostgreSQL (psycopg 3)
+python-decouple>=3.8                  # Leitura de variáveis de ambiente (.env)
+# ------------------------------------------------------------
+# Produção
+# ------------------------------------------------------------
+gunicorn>=23.0                        # Servidor WSGI (Linux)
+whitenoise>=6.7                       # Serve os arquivos estáticos (CSS/JS do admin e do Swagger)

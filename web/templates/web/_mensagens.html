@@ -1,0 +1,11 @@
+{% if messages %}
+<div class="avisos" role="status" aria-live="polite">
+  {% for mensagem in messages %}
+  <div class="aviso{% if mensagem.level_tag == 'error' %} aviso--erro{% endif %}">
+    <span class="icon">{% if mensagem.level_tag == 'error' %}error{% else %}check_circle{% endif %}</span>
+    <span>{{ mensagem }}</span>
+    <button type="button" class="aviso__fechar" aria-label="Fechar">&times;</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,47 @@
+{% extends "web/app.html" %}
+{% load static %}
+{% block titulo %}Consulados · Conexão Coral{% endblock %}
+{% block body_class %}pagina-mapa{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+
+{% block conteudo %}
+<div id="mapa" class="mapa" aria-label="Mapa dos consulados"></div>
+
+<div class="mapa__busca">
+  <label class="busca-flutuante">
+    <span class="icon">search</span>
+    <input type="search" id="busca-consulados" placeholder="Buscar por cidade, bairro ou nome" autocomplete="off" aria-label="Buscar consulados">
+  </label>
+  <p class="mapa__resumo" id="resumo-busca" aria-live="polite"></p>
+</div>
+
+<button type="button" class="mapa__enquadrar" id="enquadrar" title="Ver todos os consulados" aria-label="Ver todos os consulados">
+  <span class="icon">zoom_out_map</span>
+</button>
+
+<section class="folha" id="folha-consulado" hidden aria-label="Resumo do consulado">
+  <button type="button" class="folha__fechar" id="fechar-folha" aria-label="Fechar">&times;</button>
+  <div class="folha__topo">
+    <div class="folha__foto" id="folha-foto"><span class="icon">storefront</span></div>
+    <div>
+      <h2 id="folha-nome"></h2>
+      <p class="apoio" id="folha-endereco"></p>
+      <div class="pills" id="folha-pills"></div>
+    </div>
+  </div>
+  <p class="folha__descricao" id="folha-descricao"></p>
+  <div class="folha__acoes">
+    <a class="botao" id="folha-whatsapp" target="_blank" rel="noopener"><span class="icon">chat</span>Entrar no grupo do WhatsApp</a>
+    <a class="botao botao--contorno" id="folha-detalhes"><span class="icon">arrow_forward</span>Ver detalhes e fazer check-in</a>
+  </div>
+</section>
+
+{{ consulados|json_script:"consulados-dados" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'web/mapa.js' %}"></script>
+{% endblock %}

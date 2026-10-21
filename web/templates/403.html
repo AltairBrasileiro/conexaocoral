@@ -1,0 +1,12 @@
+{% extends "web/base.html" %}
+{% block titulo %}Acesso restrito · Conexão Coral{% endblock %}
+{% block corpo %}
+<main class="pagina pagina--estreita">
+  <div class="vazio">
+    <span class="icon">lock</span>
+    <h3>Acesso restrito</h3>
+    <p>{{ exception|default:"Seu perfil de usuário não tem permissão para acessar esta página." }}</p>
+    <a class="botao botao--compacto" href="{% url 'web:consulados' %}">Voltar ao início</a>
+  </div>
+</main>
+{% endblock %}

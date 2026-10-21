@@ -1,0 +1,14 @@
+{% load coral %}
+<article class="card partida{% if destaque %} partida--destaque{% endif %}">
+  {% include "web/_data_bloco.html" with data=partida.data_hora %}
+  <div class="partida__corpo">
+    {% if destaque %}<p class="sobretitulo">Próximo jogo</p>{% endif %}
+    <h3>{{ partida|confronto }}</h3>
+    <p class="apoio">{{ partida.data_hora|dia_hora }}</p>
+    <div class="pills">
+      {% include "web/_mando.html" %}
+      <span class="pill"><span class="icon">emoji_events</span>{{ partida.campeonato }}</span>
+      {% if partida.canal_transmissao %}<span class="pill pill--preto"><span class="icon">live_tv</span>{{ partida.canal_transmissao }}</span>{% endif %}
+    </div>
+  </div>
+</article>

@@ -1,0 +1,119 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Painel do Responsável · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Responsável</h1>
+
+  {% if not consulados %}
+    {% include "web/_vazio.html" with icone="store" titulo="Você ainda não administra nenhum consulado" mensagem="Cadastre seu bar/sede pela API ou peça ao administrador para vinculá-lo à sua conta." %}
+  {% else %}
+
+  {% if consulados|length > 1 %}
+  <form method="get" class="campo seletor" data-auto-enviar>
+    <label for="seletor-consulado">Consulado</label>
+    <select id="seletor-consulado" name="consulado">
+      {% for c in consulados %}<option value="{{ c.pk }}"{% if c.pk == consulado.pk %} selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+    </select>
+    <noscript><button type="submit" class="botao botao--compacto">Abrir</button></noscript>
+  </form>
+  {% endif %}
+
+  <h2 class="painel__nome">{{ consulado.nome }}</h2>
+  <div class="pills">
+    {% if consulado.aprovado %}
+      <span class="pill"><span class="icon">verified</span>Aprovado</span>
+    {% else %}
+      <span class="pill"><span class="icon">hourglass_top</span>Aguardando aprovação</span>
+    {% endif %}
+    <span class="pill"><span class="icon">groups</span>{{ consulado.total_membros|membros }}</span>
+    <a class="pill pill--link" href="{% url 'web:consulado' consulado.pk %}"><span class="icon">open_in_new</span>Ver página pública</a>
+  </div>
+
+  <h2 class="secao">Público previsto</h2>
+  <div class="indicadores">
+    <div class="indicador indicador--destaque">
+      <strong>{{ publico_previsto }}</strong>
+      <span>Público previsto</span>
+      <small>Check-ins + presenças em eventos</small>
+    </div>
+    <div class="indicador">
+      <strong>{{ checkins|length }}</strong>
+      <span>Check-ins no próximo jogo</span>
+      <small>{% if partida %}{{ partida|confronto }}{% else %}Sem jogo agendado{% endif %}</small>
+    </div>
+    <div class="indicador">
+      <strong>{{ presencas_previstas }}</strong>
+      <span>Presenças em eventos</span>
+      <small>{{ eventos_futuros }} evento(s) programado(s)</small>
+    </div>
+  </div>
+
+  {% if partida %}
+  <h2 class="secao">Próximo jogo</h2>
+  {% include "web/_proximo_jogo.html" with total_checkins=checkins|length %}
+  <details class="card expansivel">
+    <summary><span class="icon">how_to_reg</span>Quem fez check-in ({{ checkins|length }})</summary>
+    <ul class="lista">
+      {% for c in checkins %}
+        <li><span class="icon">person</span><span>{{ c.usuario.nome }}</span><small>{{ c.data_checkin|hora }}</small></li>
+      {% empty %}
+        <li class="apoio">Ninguém fez check-in ainda.</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  <div class="secao secao--acao">
+    <h2>Dados do bar/sede</h2>
+    <a class="botao-texto" href="{% url 'web:editar-consulado' consulado.pk %}"><span class="icon">edit</span>Editar</a>
+  </div>
+  <dl class="card dados">
+    <div><dt><span class="icon">location_on</span>Endereço</dt><dd>{{ consulado.endereco }}</dd></div>
+    <div><dt><span class="icon">chat</span>Grupo do WhatsApp</dt><dd>{{ consulado.link_whatsapp|default:"Não informado" }}</dd></div>
+    <div><dt><span class="icon">info</span>Descrição / funcionamento</dt><dd>{{ consulado.descricao|default:"Não informada"|linebreaksbr }}</dd></div>
+  </dl>
+
+  <div class="secao secao--acao">
+    <h2>Eventos do consulado</h2>
+    <a class="botao botao--compacto" href="{% url 'web:novo-evento' consulado.pk %}"><span class="icon">add</span>Novo evento</a>
+  </div>
+  {% for e in eventos %}
+    <details class="card expansivel evento-painel">
+      <summary>
+        {% include "web/_data_bloco.html" with data=e.data_hora_inicio %}
+        <div class="evento-painel__corpo">
+          <h3>{{ e.titulo }}</h3>
+          <p class="apoio pequeno">{{ e.data_hora_inicio|dia_hora }}</p>
+          <div class="pills">
+            {% if e.data_hora_fim < agora %}
+              <span class="pill"><span class="icon">history</span>Encerrado</span>
+            {% elif e.status_aprovacao == "APROVADO" %}
+              <span class="pill"><span class="icon">check</span>Publicado</span>
+            {% elif e.status_aprovacao == "REJEITADO" %}
+              <span class="pill pill--preto"><span class="icon">block</span>Rejeitado</span>
+            {% else %}
+              <span class="pill"><span class="icon">hourglass_top</span>Aguardando aprovação</span>
+            {% endif %}
+            {% if e.exclusivo_membros %}<span class="pill"><span class="icon">lock</span>Só membros</span>{% endif %}
+          </div>
+        </div>
+        <div class="evento-painel__total"><strong>{{ e.total_confirmados }}</strong><small>confirmados</small></div>
+        <span class="icon expansivel__seta">expand_more</span>
+      </summary>
+      <ul class="lista">
+        {% for p in e.presencas.all %}
+          <li><span class="icon">person</span><span>{{ p.usuario.nome }}</span><small>Confirmou em {{ p.data_confirmacao|dia_hora }}</small></li>
+        {% empty %}
+          <li class="apoio">Ninguém confirmou presença ainda.</li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% empty %}
+    <div class="card linha"><span class="icon">celebration</span>Nenhum evento criado ainda.</div>
+  {% endfor %}
+
+  {% endif %}
+</div>
+{% endblock %}

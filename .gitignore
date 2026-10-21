@@ -9,14 +9,18 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+staticfiles/
 
-# Segredos e variáveis locais
+# Segredos e variáveis locais (NUNCA versione o .env)
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Banco local e dados persistentes
 data/
+db.sqlite3
 *.db
 *.sqlite
 *.sqlite3

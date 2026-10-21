@@ -1,0 +1,55 @@
+{% extends "web/base.html" %}
+{% block titulo %}Entrar · Conexão Coral{% endblock %}
+{% block body_class %}pagina-login{% endblock %}
+{% block corpo %}
+<header class="login__topo">
+  {% include "web/_emblema.html" with tamanho=84 %}
+  <h1>Conexão Coral</h1>
+  <p>Consulados, jogos e aliados do Santa Cruz</p>
+</header>
+<div class="faixa faixa--grossa" aria-hidden="true"></div>
+
+<main class="login__corpo">
+  <form method="post" class="login__form" novalidate>
+    {% csrf_token %}
+    <h2>Entrar</h2>
+    {% if form.non_field_errors %}
+      <div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>
+    {% endif %}
+    <div class="campo campo--icone{% if form.username.errors %} campo--erro{% endif %}">
+      <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+      <span class="icon">mail</span>
+      {{ form.username }}
+      {% for erro in form.username.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+    </div>
+    <div class="campo campo--icone{% if form.password.errors %} campo--erro{% endif %}">
+      <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+      <span class="icon">lock</span>
+      {{ form.password }}
+      <button type="button" class="campo__acao" data-mostrar-senha="{{ form.password.id_for_label }}" aria-label="Mostrar senha" title="Mostrar senha">
+        <span class="icon">visibility</span>
+      </button>
+      {% for erro in form.password.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="botao">Entrar</button>
+  </form>
+
+  {% if contas_demo %}
+  <section class="login__demo">
+    <h3>Contas de demonstração</h3>
+    <div class="chips">
+      {% for rotulo, email in contas_demo %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="username" value="{{ email }}">
+        <input type="hidden" name="password" value="{{ senha_demo }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="chip">{{ rotulo }}</button>
+      </form>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
