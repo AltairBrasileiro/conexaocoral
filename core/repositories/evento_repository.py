@@ -30,7 +30,8 @@ class EventoRepository(BaseRepository[Evento]):
                 | Q(consulado__responsavel=usuario)
             )
         return qs.annotate(
-            total_confirmados=Count("presencas", distinct=True),
+            # Count faz o JOIN direto no banco: o filtro das retiradas precisa ser explícito.
+            total_confirmados=Count("presencas", filter=Q(presencas__removida_em__isnull=True), distinct=True),
             confirmado=Exists(PresencaEvento.objects.filter(evento=OuterRef("pk"), usuario=usuario)),
         )
 

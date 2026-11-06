@@ -1,12 +1,15 @@
 """Testes de integração das principais regras de negócio via API."""
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.core.cache import cache
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from core.models import CheckIn, MembroConsulado, StatusAprovacao, TipoUsuario, TokenWhitelist
-from core.tests.factories import criar_consulado, criar_evento, criar_partida, criar_usuario
+from core.models import MembroConsulado, StatusAprovacao, TipoUsuario, TokenWhitelist
+from core.tests.factories import criar_consulado, criar_evento, criar_usuario
 
 
 class BaseAPITestCase(APITestCase):
@@ -54,45 +57,30 @@ class AuthWhitelistTests(BaseAPITestCase):
         self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class CheckInTests(BaseAPITestCase):
+class EntradaComoMembroTests(BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.torcedor = criar_usuario()
         self.consulado = criar_consulado()
-        self.partida = criar_partida()
         self.autenticar(self.torcedor)
 
-    def _checkin(self, consulado=None):
-        return self.client.post("/api/v1/checkins/", {
-            "partida": self.partida.id, "consulado": (consulado or self.consulado).id,
-        })
+    def test_entrada_como_membro_depende_do_embaixador(self):
+        pedido = self.client.post(f"/api/v1/consulados/{self.consulado.id}/solicitar-entrada/")
+        self.assertEqual(pedido.status_code, status.HTTP_201_CREATED, pedido.data)
+        repetido = self.client.post(f"/api/v1/consulados/{self.consulado.id}/solicitar-entrada/")
+        self.assertEqual(repetido.status_code, status.HTTP_409_CONFLICT)
+        # O torcedor não responde o próprio pedido.
+        proprio = self.client.post(f"/api/v1/consulados/{self.consulado.id}/responder-entrada/",
+                                   {"solicitacao": pedido.data["id"], "aprovar": True})
+        self.assertEqual(proprio.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_primeiro_checkin_filia_usuario_ao_consulado(self):
-        self.assertFalse(MembroConsulado.objects.filter(usuario=self.torcedor).exists())
-        resposta = self._checkin()
-        self.assertEqual(resposta.status_code, status.HTTP_201_CREATED, resposta.data)
-        self.assertTrue(
-            MembroConsulado.objects.filter(usuario=self.torcedor, consulado=self.consulado).exists()
-        )
-
-    def test_apenas_um_checkin_ativo_por_partida(self):
-        self.assertEqual(self._checkin().status_code, status.HTTP_201_CREATED)
-        outro = criar_consulado()
-        resposta = self._checkin(outro)
-        self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("partida", resposta.data)
-
-    def test_cancelar_libera_novo_checkin(self):
-        checkin_id = self._checkin().data["id"]
-        self.assertEqual(
-            self.client.post(f"/api/v1/checkins/{checkin_id}/cancelar/").status_code, status.HTTP_200_OK,
-        )
-        self.assertEqual(self._checkin(criar_consulado()).status_code, status.HTTP_201_CREATED)
-        self.assertEqual(CheckIn.objects.filter(usuario=self.torcedor, ativo=True).count(), 1)
-
-    def test_nao_permite_checkin_em_consulado_pendente(self):
-        pendente = criar_consulado(status_aprovacao=StatusAprovacao.PENDENTE)
-        self.assertEqual(self._checkin(pendente).status_code, status.HTTP_400_BAD_REQUEST)
+        self.autenticar(self.consulado.responsavel)
+        pendentes = self.client.get(f"/api/v1/consulados/{self.consulado.id}/solicitacoes-entrada/")
+        self.assertEqual([p["id"] for p in pendentes.data], [pedido.data["id"]])
+        aprovado = self.client.post(f"/api/v1/consulados/{self.consulado.id}/responder-entrada/",
+                                    {"solicitacao": pedido.data["id"], "aprovar": True})
+        self.assertEqual(aprovado.status_code, status.HTTP_200_OK, aprovado.data)
+        self.assertTrue(MembroConsulado.objects.filter(usuario=self.torcedor, consulado=self.consulado).exists())
 
 
 class PresencaEventoTests(BaseAPITestCase):
@@ -103,10 +91,24 @@ class PresencaEventoTests(BaseAPITestCase):
         self.evento = criar_evento(self.consulado)
         self.autenticar(self.torcedor)
 
-    def test_nao_membro_nao_confirma_presenca(self):
+    def test_nao_membro_confirma_presenca_em_evento_livre(self):
         resposta = self.client.post("/api/v1/presencas-evento/", {"evento": self.evento.id})
+        self.assertEqual(resposta.status_code, status.HTTP_201_CREATED, resposta.data)
+
+    def test_nao_membro_nao_confirma_presenca_em_evento_exclusivo(self):
+        exclusivo = criar_evento(self.consulado, exclusivo_membros=True)
+        resposta = self.client.post("/api/v1/presencas-evento/", {"evento": exclusivo.id})
         self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("evento", resposta.data)
+
+    def test_evento_exclusivo_nao_aparece_para_nao_membro(self):
+        exclusivo = criar_evento(self.consulado, titulo="Só para membros", exclusivo_membros=True)
+        ids = [e["id"] for e in self.client.get("/api/v1/eventos/").data["results"]]
+        self.assertIn(self.evento.id, ids)
+        self.assertNotIn(exclusivo.id, ids)
+        MembroConsulado.objects.create(usuario=self.torcedor, consulado=self.consulado)
+        ids = [e["id"] for e in self.client.get("/api/v1/eventos/").data["results"]]
+        self.assertIn(exclusivo.id, ids)
 
     def test_membro_confirma_presenca_uma_unica_vez(self):
         MembroConsulado.objects.create(usuario=self.torcedor, consulado=self.consulado)
@@ -117,18 +119,51 @@ class PresencaEventoTests(BaseAPITestCase):
 
 
 class PermissoesTests(BaseAPITestCase):
-    def test_torcedor_nao_cria_consulado(self):
-        self.autenticar(criar_usuario())
+    def test_torcedor_solicita_consulado_e_aprovacao_o_torna_embaixador(self):
+        torcedor = criar_usuario()
+        self.autenticar(torcedor)
+        dados = {"nome": "Novo", "endereco": "Rua X", "latitude": "-7.1", "longitude": "-34.8",
+                 "link_whatsapp": "https://chat.whatsapp.com/novo"}
+        resposta = self.client.post("/api/v1/consulados/", dados)
+        self.assertEqual(resposta.status_code, status.HTTP_201_CREATED, resposta.data)
+        self.assertEqual(resposta.data["status_aprovacao"], StatusAprovacao.PENDENTE)
+        # Só uma solicitação em análise por vez.
+        segunda = self.client.post("/api/v1/consulados/", {**dados, "nome": "Outro"})
+        self.assertEqual(segunda.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.autenticar(criar_usuario(TipoUsuario.ADMIN))
+        aprovado = self.client.post(f"/api/v1/consulados/{resposta.data['id']}/aprovar/")
+        self.assertEqual(aprovado.status_code, status.HTTP_200_OK, aprovado.data)
+        torcedor.refresh_from_db()
+        self.assertEqual(torcedor.tipo_usuario, TipoUsuario.RESPONSAVEL_CONSULADO)
+
+    def test_responsavel_por_aliado_nao_solicita_consulado(self):
+        self.autenticar(criar_usuario(TipoUsuario.RESPONSAVEL_ALIADO))
         resposta = self.client.post("/api/v1/consulados/", {
             "nome": "Novo", "endereco": "Rua X", "latitude": "-7.1", "longitude": "-34.8",
         })
-        self.assertEqual(resposta.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resposta.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_evento_do_responsavel_nasce_publicado_e_edicao_mantem(self):
+        responsavel = criar_usuario(TipoUsuario.RESPONSAVEL_CONSULADO)
+        consulado = criar_consulado(responsavel=responsavel)
+        self.autenticar(responsavel)
+        inicio = timezone.now() + timedelta(days=2)
+        resposta = self.client.post("/api/v1/eventos/", {
+            "consulado": consulado.id, "titulo": "Resenha",
+            "data_hora_inicio": inicio.isoformat(), "data_hora_fim": (inicio + timedelta(hours=3)).isoformat(),
+        })
+        self.assertEqual(resposta.status_code, status.HTTP_201_CREATED, resposta.data)
+        self.assertEqual(resposta.data["status_aprovacao"], StatusAprovacao.APROVADO)
+        editado = self.client.patch(f"/api/v1/eventos/{resposta.data['id']}/", {"titulo": "Resenha pré-jogo"})
+        self.assertEqual(editado.data["status_aprovacao"], StatusAprovacao.APROVADO)
 
     def test_responsavel_cria_consulado_pendente_e_admin_aprova(self):
         responsavel = criar_usuario(TipoUsuario.RESPONSAVEL_CONSULADO)
         self.autenticar(responsavel)
         resposta = self.client.post("/api/v1/consulados/", {
             "nome": "Consulado Tambaú", "endereco": "Av. Tamandaré", "latitude": "-7.1", "longitude": "-34.8",
+            "link_whatsapp": "https://chat.whatsapp.com/tambau",
         })
         self.assertEqual(resposta.status_code, status.HTTP_201_CREATED, resposta.data)
         self.assertEqual(resposta.data["status_aprovacao"], StatusAprovacao.PENDENTE)

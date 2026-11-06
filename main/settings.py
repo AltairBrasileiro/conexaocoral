@@ -82,6 +82,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "web.context_processors.navegacao",
             ],
         },
     },
@@ -241,7 +242,7 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 SPECTACULAR_SETTINGS = {
     "TITLE": "Conexão Coral API",
-    "DESCRIPTION": "API REST de consulados, partidas, check-ins, eventos e aliados.",
+    "DESCRIPTION": "API REST de consulados, partidas, eventos, presenças e aliados.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
@@ -251,10 +252,25 @@ SPECTACULAR_SETTINGS = {
 # Regras de negócio configuráveis
 # ---------------------------------------------------------------------------
 CONEXAO_CORAL = {
-    # Janela em que o check-in é aceito, relativa ao horário da partida.
-    # Use 0 em ambos para desativar a restrição de janela.
-    "CHECKIN_HORAS_ANTES": config("CHECKIN_HORAS_ANTES", default=3, cast=int),
-    "CHECKIN_HORAS_DEPOIS": config("CHECKIN_HORAS_DEPOIS", default=3, cast=int),
+    # Pix da página "Apoie o Conexão Coral".
+    # ATENÇÃO: chave FICTÍCIA, só para demonstração. Ao trocar pela chave real,
+    # mude "ficticio" para False (o aviso de demonstração some da página).
+    "PIX": {
+        "chave": "pix-ficticio@conexaocoral.com.br",
+        "nome": "Conexao Coral",
+        "cidade": "Recife",
+        "ficticio": True,
+    },
+    # Requisitos exibidos no formulário de solicitação de novo consulado; o
+    # solicitante precisa declarar que os atende.
+    # ATENÇÃO: textos de EXEMPLO. Substitua pelos requisitos oficiais do Santa Cruz.
+    "REQUISITOS_CONSULADO": [
+        "Ter um local fixo (bar, sede ou espaço) para reunir a torcida em dia de jogo.",
+        "Transmitir os jogos do Santa Cruz ou organizar a ida da torcida ao estádio.",
+        "Ter um embaixador maior de 18 anos, com telefone e e-mail ativos, responsável pelo consulado.",
+        "Manter um grupo de comunicação com os membros (ex.: WhatsApp).",
+        "Respeitar o estatuto e as regras de conduta do Santa Cruz Futebol Clube.",
+    ],
 }
 
 # ---------------------------------------------------------------------------

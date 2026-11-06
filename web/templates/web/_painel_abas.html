@@ -1,0 +1,13 @@
+{% if user.is_admin %}
+<nav class="segmentos segmentos--painel" aria-label="Seções do painel">
+  <a href="{% url 'web:painel' %}" class="segmento{% if subaba == 'consulados' %} ativo{% endif %}"><span class="icon">storefront</span>Consulados</a>
+  <a href="{% url 'web:solicitacoes' %}" class="segmento{% if subaba == 'solicitacoes' %} ativo{% endif %}">
+    <span class="icon">assignment</span>Solicitações
+    {% if total_solicitacoes %}<span class="contador">{{ total_solicitacoes }}</span>{% endif %}
+  </a>
+  <a href="{% url 'web:reportes' %}" class="segmento{% if subaba == 'reportes' %} ativo{% endif %}">
+    <span class="icon">feedback</span>Reportes
+    {% if total_reportes %}<span class="contador">{{ total_reportes }}</span>{% endif %}
+  </a>
+</nav>
+{% endif %}

@@ -1,0 +1,69 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Confirmados · {{ evento.titulo }} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">{{ evento.titulo }}</h1>
+  <p class="apoio">{{ consulado.nome }} · {{ evento.data_hora_inicio|dia_hora }} até {{ evento.data_hora_fim|hora }}</p>
+
+  <div class="pills resumo-presencas">
+    {% if evento.limite_vagas %}
+      <span class="pill"><span class="icon">group</span>{{ presencas|length }} de {{ evento.limite_vagas }} vagas</span>
+      {% if vagas_restantes > 0 %}
+        <span class="pill">{{ vagas_restantes }} vaga{{ vagas_restantes|pluralize }} livre{{ vagas_restantes|pluralize }}</span>
+      {% else %}
+        <span class="pill pill--preto"><span class="icon">block</span>Vagas esgotadas</span>
+      {% endif %}
+    {% else %}
+      <span class="pill"><span class="icon">group</span>{{ presencas|length }} confirmado{{ presencas|length|pluralize }} · sem limite de vagas</span>
+    {% endif %}
+    {% if evento.exclusivo_membros %}<span class="pill pill--preto"><span class="icon">lock</span>Exclusivo para membros</span>{% endif %}
+  </div>
+
+  <div class="secao secao--acao">
+    <h2>Confirmados <span class="pill">{{ presencas|length }}</span></h2>
+    <a class="botao botao--compacto" href="{% url 'web:presencas-evento-pdf' evento.pk %}"><span class="icon">picture_as_pdf</span>Exportar PDF</a>
+  </div>
+
+  {% if presencas %}
+  <ul class="card membros">
+    {% for p in presencas %}
+    <li class="membro">
+      <span class="numero" aria-hidden="true">{{ forloop.counter }}</span>
+      <div class="membro__info">
+        <strong>{{ p.usuario.nome }}</strong>
+        <small class="apoio">{{ p.usuario.email }}{% if p.usuario.telefone %} · {{ p.usuario.telefone }}{% endif %} · confirmou em {{ p.data_confirmacao|date:"d/m/Y \à\s H:i" }}</small>
+      </div>
+      <form method="post" action="{% url 'web:remover-presenca' p.pk %}" data-confirmar="Retirar {{ p.usuario.nome }} da lista de confirmados?{% if evento.limite_vagas %} A vaga fica livre para outra pessoa.{% endif %}">
+        {% csrf_token %}
+        <button type="submit" class="botao botao--perigo botao--compacto"><span class="icon">person_remove</span>Retirar</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">event_available</span>Ninguém confirmou presença ainda.</div>
+  {% endif %}
+  <p class="apoio pequeno nota-painel">Quem for retirado(a) sai da lista e não consegue confirmar presença de novo neste evento, a não ser que seja readmitido(a).</p>
+
+  {% if retiradas %}
+  <h2 class="secao">Retirados da lista <span class="pill">{{ retiradas|length }}</span></h2>
+  <ul class="card membros">
+    {% for p in retiradas %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong>{{ p.usuario.nome }}</strong>
+        <small class="apoio">{{ p.usuario.email }} · retirado(a) em {{ p.removida_em|date:"d/m/Y \à\s H:i" }}{% if p.removida_por %} por {{ p.removida_por.nome }}{% endif %}</small>
+      </div>
+      <form method="post" action="{% url 'web:readmitir-presenca' p.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="botao-texto"><span class="icon">undo</span>Readmitir</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

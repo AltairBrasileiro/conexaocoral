@@ -48,11 +48,90 @@
     });
   });
 
-  // Evita envio duplo (ex.: dois cliques em "Fazer check-in").
+  // Evita envio duplo (ex.: dois cliques em "Confirmar presença").
   document.querySelectorAll('form[method="post"]').forEach(function (form) {
     form.addEventListener("submit", function (e) {
       if (e.defaultPrevented) return;
       form.querySelectorAll('button[type="submit"]').forEach(function (b) { b.disabled = true; });
+    });
+  });
+
+  // ------------------------------------------------ Pré-visualização de imagem
+  document.querySelectorAll("input[data-previa-imagem]").forEach(function (campo) {
+    var previa = document.querySelector('[data-previa-de="' + campo.id + '"]');
+    var vazio = document.querySelector('[data-vazio-de="' + campo.id + '"]');
+    var remover = document.getElementById(campo.id + "-clear");
+    campo.addEventListener("change", function () {
+      var arquivo = campo.files && campo.files[0];
+      if (!arquivo) return;
+      if (previa.src.indexOf("blob:") === 0) URL.revokeObjectURL(previa.src);
+      previa.src = URL.createObjectURL(arquivo);
+      previa.hidden = false;
+      if (vazio) vazio.hidden = true;
+      if (remover) remover.checked = false; // enviar uma nova imagem já substitui a atual
+    });
+  });
+
+  // ------------------------------------- Pré-visualização de várias imagens
+  document.querySelectorAll("input[data-previa-varias]").forEach(function (campo) {
+    var lista = document.querySelector('[data-previa-varias-de="' + campo.id + '"]');
+    campo.addEventListener("change", function () {
+      lista.querySelectorAll("img").forEach(function (img) { URL.revokeObjectURL(img.src); });
+      lista.innerHTML = "";
+      Array.prototype.forEach.call(campo.files, function (arquivo) {
+        var item = document.createElement("li");
+        var img = document.createElement("img");
+        img.alt = arquivo.name;
+        img.src = URL.createObjectURL(arquivo);
+        var rotulo = document.createElement("span");
+        rotulo.className = "fotos-evento__nova";
+        rotulo.textContent = "Nova";
+        item.appendChild(img);
+        item.appendChild(rotulo);
+        lista.appendChild(item);
+      });
+      lista.hidden = !campo.files.length;
+    });
+  });
+
+  // ---------------------------------------- Cargo: lista com "Outro cargo…"
+  document.querySelectorAll("select[data-cargo]").forEach(function (lista) {
+    var form = lista.form;
+    var outro = form.querySelector("[data-cargo-outro]");
+    function alternar(focar) {
+      var digitar = lista.value === lista.dataset.cargo;
+      outro.hidden = !digitar;
+      outro.required = digitar;
+      if (digitar && focar) outro.focus();
+    }
+    lista.addEventListener("change", function () {
+      alternar(true);
+      // Na lista de membros, escolher um cargo já salva; "Outro" espera o texto digitado.
+      if (form.hasAttribute("data-salvar-ao-escolher") && lista.value !== lista.dataset.cargo) {
+        form.requestSubmit();
+      }
+    });
+    alternar();
+  });
+
+  // ------------------------------------------------------ Copiar (ex.: Pix)
+  document.querySelectorAll("[data-copiar]").forEach(function (botao) {
+    var origem = document.getElementById(botao.dataset.copiar);
+    var texto = botao.querySelector("span:last-child");
+    var original = texto.textContent;
+    botao.addEventListener("click", function () {
+      function pronto() {
+        texto.textContent = botao.dataset.copiado || "Copiado!";
+        setTimeout(function () { texto.textContent = original; }, 2500);
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(origem.value).then(pronto);
+      } else {
+        // Fora de HTTPS (ex.: acesso pelo IP da rede) a API de área de transferência não existe.
+        origem.select();
+        document.execCommand("copy");
+        pronto();
+      }
     });
   });
 

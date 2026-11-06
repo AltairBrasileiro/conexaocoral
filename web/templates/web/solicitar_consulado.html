@@ -1,0 +1,80 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Solicitar consulado · Conexão Coral{% endblock %}
+{% block head %}{% include "web/_mapa_css.html" %}{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <a class="voltar" href="{% url 'web:consulados' %}"><span class="icon">arrow_back</span>Consulados</a>
+  <h1 class="titulo-pagina">{% if user.is_admin %}Cadastrar consulado{% else %}Solicitar novo consulado{% endif %}</h1>
+  <p class="apoio">
+    {% if user.is_admin %}Cadastros feitos pela administração já entram publicados no mapa.
+    {% else %}Leve o Santa Cruz para a sua cidade. A administração analisa o pedido e, se aprovado, você vira o embaixador do consulado.{% endif %}
+  </p>
+
+  {% if minhas_solicitacoes %}
+  <h2 class="secao">Minhas solicitações</h2>
+  <ul class="card lista lista--solta">
+    {% for c in minhas_solicitacoes %}
+    <li>
+      <span class="icon">{% if c.aprovado %}verified{% elif c.status_aprovacao == "REJEITADO" %}block{% else %}hourglass_top{% endif %}</span>
+      <span>
+        {% if c.aprovado %}<a href="{% url 'web:consulado' c.pk %}">{{ c.nome }}</a>{% else %}{{ c.nome }}{% endif %}
+        <small class="apoio">· enviada em {{ c.criado_em|date:"d/m/Y" }}</small>
+        {% if c.motivo_rejeicao %}<small class="apoio bloco">Motivo: {{ c.motivo_rejeicao }}</small>{% endif %}
+      </span>
+      {% if c.aprovado %}<span class="pill">Aprovado</span>
+      {% elif c.status_aprovacao == "REJEITADO" %}<span class="pill pill--preto">Recusado</span>
+      {% else %}<span class="pill">Em análise</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 class="secao">Requisitos do Santa Cruz</h2>
+  <ol class="card requisitos">
+    {% for requisito in requisitos %}<li>{{ requisito }}</li>{% endfor %}
+  </ol>
+
+  <h2 class="secao">Dados do consulado</h2>
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    {% include "web/_campo.html" with campo=form.nome %}
+    {% include "web/_campo.html" with campo=form.endereco %}
+
+    <div class="campo{% if form.latitude.errors or form.longitude.errors %} campo--erro{% endif %}">
+      <span class="campo__rotulo">Localização no mapa</span>
+      <div class="local__acoes">
+        <button type="button" class="botao botao--contorno botao--compacto" id="local-buscar"><span class="icon">travel_explore</span>Buscar endereço</button>
+        <button type="button" class="botao botao--contorno botao--compacto" id="local-gps"><span class="icon">my_location</span>Usar minha localização</button>
+      </div>
+      {# Altura no próprio elemento: o mapa aparece mesmo se o CSS estiver desatualizado no navegador. #}
+      <div id="mapa-local" class="mapa-local" style="height: 320px" aria-label="Mapa: clique para marcar o local do consulado"></div>
+      <small class="campo__ajuda" id="local-ajuda" aria-live="polite">Clique no mapa ou use sua localização para marcar onde fica o bar/sede: o endereço é preenchido automaticamente. Se preferir, digite o endereço e clique em "Buscar endereço". Depois, arraste o pino para ajustar.</small>
+      {% for erro in form.latitude.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+      {{ form.latitude }}{{ form.longitude }}
+    </div>
+
+    {% include "web/_campo_imagem.html" with campo=form.foto atual="" %}
+    {% include "web/_campo.html" with campo=form.link_whatsapp %}
+    {% include "web/_campo.html" with campo=form.descricao %}
+
+    <label class="aceite{% if form.aceite_requisitos.errors %} campo--erro{% endif %}">
+      {{ form.aceite_requisitos }}
+      <span>{{ form.aceite_requisitos.label }}</span>
+    </label>
+    {% for erro in form.aceite_requisitos.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+
+    <div class="formulario__acoes">
+      <a class="botao-texto" href="{% url 'web:consulados' %}">Cancelar</a>
+      <button type="submit" class="botao botao--compacto"><span class="icon">send</span>{% if user.is_admin %}Cadastrar{% else %}Enviar solicitação{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "web/_mapa_js.html" %}
+<script src="{% estatico 'web/local.js' %}"></script>
+{% endblock %}

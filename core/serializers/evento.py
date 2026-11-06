@@ -12,12 +12,14 @@ class EventoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
     consulado_nome = serializers.CharField(source="consulado.nome", read_only=True)
     total_confirmados = serializers.SerializerMethodField()
     confirmado = serializers.SerializerMethodField()
+    # URLs absolutas das fotos de divulgação (envio pela interface web, no Painel).
+    fotos = serializers.SerializerMethodField()
 
     class Meta:
         model = Evento
         fields = (
             "id", "consulado", "consulado_nome", "titulo", "descricao",
-            "data_hora_inicio", "data_hora_fim", "exclusivo_membros",
+            "data_hora_inicio", "data_hora_fim", "exclusivo_membros", "limite_vagas", "fotos",
             "status_aprovacao", "total_confirmados", "confirmado", "criado_em",
         )
         read_only_fields = ("id", "status_aprovacao", "criado_em")
@@ -25,6 +27,11 @@ class EventoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
     def get_total_confirmados(self, obj: Evento) -> int:
         valor = getattr(obj, "total_confirmados", None)
         return valor if valor is not None else obj.presencas.count()
+
+    def get_fotos(self, obj: Evento) -> list[str]:
+        request = self.context.get("request")
+        urls = [foto.imagem.url for foto in obj.fotos.all()]
+        return [request.build_absolute_uri(url) for url in urls] if request else urls
 
     def get_confirmado(self, obj: Evento) -> bool:
         valor = getattr(obj, "confirmado", None)

@@ -1,9 +1,13 @@
 """Filtros de formatação usados nos templates (datas em português, plurais, rótulos)."""
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
 from django import template
+from django.contrib.staticfiles import finders
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.templatetags.static import static
 from django.utils import timezone
 
 from core.models import CategoriaAliado, MandoCampo, TipoUsuario
@@ -29,6 +33,27 @@ ICONES_CATEGORIA = {
     CategoriaAliado.LOJA: "storefront",
     CategoriaAliado.SERVICOS: "handyman",
 }
+
+
+@register.simple_tag
+def estatico(caminho: str) -> str:
+    """
+    Como ``{% static %}``, mas com ``?v=<data de modificação>`` no fim.
+
+    Sem isso o navegador pode continuar usando um CSS/JS antigo em cache depois
+    de uma atualização (o servidor não envia Cache-Control nos estáticos).
+    """
+    url = static(caminho)
+    arquivo = finders.find(caminho)
+    if not arquivo:
+        try:
+            arquivo = staticfiles_storage.path(caminho)
+        except NotImplementedError:
+            return url
+    try:
+        return f"{url}?v={int(os.path.getmtime(arquivo))}"
+    except OSError:
+        return url
 
 
 @register.filter

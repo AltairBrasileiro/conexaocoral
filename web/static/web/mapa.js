@@ -7,15 +7,7 @@
 
   var mapa = L.map("mapa", { zoomControl: false, minZoom: 3 }).setView(CENTRO_INICIAL, 5);
   L.control.zoom({ position: "bottomright" }).addTo(mapa);
-  // A política de uso dos tiles do OpenStreetMap exige o cabeçalho Referer; sem ele,
-  // cada tile vem como a imagem "Access blocked". O Django envia "Referrer-Policy:
-  // same-origin" (SECURE_REFERRER_POLICY), que omite o Referer em requisições a outros
-  // domínios, então os tiles enviam só a origem do site (nunca o caminho da página).
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    referrerPolicy: "strict-origin-when-cross-origin",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores do OpenStreetMap</a>',
-  }).addTo(mapa);
+  CoralMapa.camadaBase(mapa); // nomes em português (ver mapa_base.js)
 
   var busca = document.getElementById("busca-consulados");
   var resumo = document.getElementById("resumo-busca");
@@ -119,13 +111,18 @@
       '<span class="pill"><span class="icon">groups</span>' + membros(c.membros) + "</span>" +
       (c.eh_membro ? '<span class="pill pill--vermelho"><span class="icon">check</span>Você é membro</span>' : "");
 
+    // O link do grupo só chega aqui para quem é membro (ver a view "consulados").
     var whatsapp = document.getElementById("folha-whatsapp");
     if (c.whatsapp) {
       whatsapp.href = c.whatsapp;
       whatsapp.removeAttribute("aria-disabled");
+      whatsapp.innerHTML = '<span class="icon">chat</span>Entrar no grupo do WhatsApp';
     } else {
       whatsapp.removeAttribute("href");
       whatsapp.setAttribute("aria-disabled", "true");
+      whatsapp.innerHTML = c.whatsapp_so_membros
+        ? '<span class="icon">lock</span>WhatsApp exclusivo para membros'
+        : '<span class="icon">chat</span>Grupo do WhatsApp não informado';
     }
     document.getElementById("folha-detalhes").href = c.url;
     folha.hidden = false;
@@ -149,6 +146,29 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !folha.hidden) fecharResumo(); });
   mapa.on("click", function () { if (!folha.hidden) fecharResumo(); });
 
+  // Atalhos "Seu consulado": abrem o resumo do consulado no mapa.
+  document.querySelectorAll("[data-focar]").forEach(function (botao) {
+    botao.addEventListener("click", function () {
+      var c = consulados.find(function (x) { return String(x.id) === botao.dataset.focar; });
+      if (c) abrirResumo(c);
+    });
+  });
+
+  // Abertura do mapa: quem já é membro vê primeiro os próprios consulados
+  // (com um só, o resumo dele já abre); os demais veem todos os consulados.
+  function abrirNosMeusConsulados() {
+    var meus = consulados.filter(function (c) { return c.eh_membro; });
+    if (!meus.length) return false;
+    if (meus.length === 1) {
+      abrirResumo(meus[0]);
+      mapa.setView([meus[0].lat, meus[0].lng], 13);
+    } else {
+      var limites = L.latLngBounds(meus.map(function (c) { return [c.lat, c.lng]; }));
+      mapa.fitBounds(limites, { paddingTopLeft: [60, 200], paddingBottomRight: [60, 80], maxZoom: 13 });
+    }
+    return true;
+  }
+
   filtrar();
-  enquadrar();
+  if (!abrirNosMeusConsulados()) enquadrar();
 })();

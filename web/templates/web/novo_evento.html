@@ -5,25 +5,11 @@
 <div class="pagina pagina--formulario">
   <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
   <h1 class="titulo-pagina">Novo evento</h1>
-  <p class="apoio">{{ consulado.nome }}</p>
+  <p class="apoio">{{ consulado.nome }} · o evento é publicado assim que for criado.</p>
 
-  <form method="post" class="card card--padding formulario" novalidate>
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
-    {% include "web/_campo.html" with campo=form.titulo %}
-    {% include "web/_campo.html" with campo=form.descricao %}
-    <div class="formulario__linha">
-      {% include "web/_campo.html" with campo=form.inicio %}
-      {% include "web/_campo.html" with campo=form.duracao %}
-    </div>
-    <label class="interruptor">
-      {{ form.exclusivo_membros }}
-      <span class="interruptor__trilho" aria-hidden="true"></span>
-      <span>
-        <strong>{{ form.exclusivo_membros.label }}</strong>
-        <small class="apoio">{{ form.exclusivo_membros.help_text }}</small>
-      </span>
-    </label>
+    {% include "web/_evento_form.html" %}
     <div class="formulario__acoes">
       <a class="botao-texto" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}">Cancelar</a>
       <button type="submit" class="botao botao--compacto">Criar evento</button>

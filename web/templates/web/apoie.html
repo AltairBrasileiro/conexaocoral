@@ -1,0 +1,46 @@
+{% extends "web/app.html" %}
+{% block titulo %}Apoie o Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <h1 class="titulo-pagina">Apoie o Conexão Coral</h1>
+  <p class="apoio">O app é feito por torcedores, para torcedores. Sua contribuição ajuda a pagar o servidor, o domínio e o tempo de desenvolvimento de novas funções.</p>
+
+  {% if pix.ficticio %}
+  <div class="alerta alerta--demo" role="note">
+    <span class="icon">warning</span>
+    <p><strong>Chave Pix fictícia.</strong> Esta página está em demonstração: não faça transferências para esta chave.</p>
+  </div>
+  {% endif %}
+
+  <section class="card card--padding pix">
+    <h2 class="pix__titulo"><span class="icon">qr_code_2</span>Contribuir via Pix</h2>
+
+    <nav class="chips pix__valores" aria-label="Valor da contribuição">
+      <a class="chip{% if not valor %} chip--ativo{% endif %}" href="{% url 'web:apoie' %}">Qualquer valor</a>
+      {% for v in valores %}
+      <a class="chip{% if valor == v %} chip--ativo{% endif %}" href="?valor={{ v }}">R$ {{ v }}</a>
+      {% endfor %}
+    </nav>
+
+    <div class="pix__qr" aria-label="QR Code do Pix">{{ qr_svg|safe }}</div>
+    <p class="apoio pequeno centro">
+      {% if valor %}Contribuição de <strong>R$ {{ valor }},00</strong>.{% else %}Você escolhe o valor no aplicativo do banco.{% endif %}
+      Abra o app do seu banco, escolha <strong>Pix → Ler QR Code</strong> ou use o código abaixo.
+    </p>
+
+    <div class="campo">
+      <label for="pix-copia-cola">Pix copia e cola</label>
+      <textarea id="pix-copia-cola" rows="3" readonly>{{ codigo_pix }}</textarea>
+    </div>
+    <button type="button" class="botao" data-copiar="pix-copia-cola" data-copiado="Código copiado!"><span class="icon">content_copy</span><span>Copiar código Pix</span></button>
+
+    <dl class="pix__dados">
+      <div><dt>Chave Pix</dt><dd>{{ pix.chave }}</dd></div>
+      <div><dt>Favorecido</dt><dd>{{ pix.nome }}</dd></div>
+    </dl>
+  </section>
+
+  <p class="apoio pequeno nota-painel">Obrigado por fortalecer a Nação Coral! Encontrou um problema? <a href="{% url 'web:reportar' %}?de={{ request.get_full_path|urlencode }}">Reporte aqui</a>.</p>
+</div>
+{% endblock %}

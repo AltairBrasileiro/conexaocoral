@@ -24,7 +24,7 @@ class UsuarioViewSet(
     Gestão de usuários (somente admin) + ``/usuarios/me/`` para o próprio perfil.
 
     Não há DELETE: usuários são desativados (``is_active=False``) para
-    preservar o histórico de check-ins e presenças.
+    preservar o histórico de filiações e presenças.
     """
 
     queryset = Usuario.objects.all().order_by("nome")

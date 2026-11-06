@@ -42,7 +42,7 @@ def criar_partida(**extra: Any) -> Partida:
         "adversario": "Rival FC",
         "mando_campo": MandoCampo.CASA,
         "campeonato": "Campeonato Paraibano",
-        "data_hora": timezone.now() + timedelta(hours=1),  # dentro da janela padrão de check-in
+        "data_hora": timezone.now() + timedelta(hours=1),
     }
     dados.update(extra)
     return Partida.objects.create(**dados)

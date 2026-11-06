@@ -2,7 +2,7 @@
 Teste de ponta a ponta (smoke test) da API Conexão Coral.
 
 Percorre, via HTTP, os fluxos usados pelas telas do app: cadastro/login,
-mapa de consulados, calendário de partidas, check-in, eventos, aliados e
+mapa de consulados, calendário de partidas, membros, eventos, aliados e
 painel do responsável. Roda em um banco temporário criado só para o teste
 (o ``db.sqlite3`` não é tocado) e não precisa do servidor no ar.
 
@@ -127,9 +127,15 @@ def executar(r: Roteiro) -> None:
 
     # --------------------------------------------------- Consulados (mapa)
     r.secao("Mapa e consulados")
-    r.status("Torcedor não cria consulado", torcedor.post(f"{API}/consulados/", {
+    resposta = torcedor.post(f"{API}/consulados/", {
         "nome": "Pirata", "endereco": "Rua X", "latitude": "-8.05", "longitude": "-34.9",
-    }), 403)
+        "link_whatsapp": "https://chat.whatsapp.com/Pirata",
+    })
+    r.status("Torcedor solicita o cadastro de um consulado", resposta, 201)
+    r.verificar("Solicitação do torcedor nasce PENDENTE", resposta.data.get("status_aprovacao") == "PENDENTE")
+    resposta = admin.post(f"{API}/consulados/{resposta.data.get('id')}/rejeitar/", {"motivo": "Endereço incompleto."})
+    r.status("Admin recusa a solicitação com motivo", resposta, 200)
+    r.verificar("Motivo da recusa fica registrado", resposta.data.get("motivo_rejeicao") == "Endereço incompleto.")
 
     resposta = embaixador.post(f"{API}/consulados/", {
         "nome": "Consulado Coral Tambaú",
@@ -157,8 +163,10 @@ def executar(r: Roteiro) -> None:
     r.verificar("Busca encontra o consulado aprovado", any(c["id"] == consulado_id for c in achados), achados)
     if achados:
         c = achados[0]
-        r.verificar("Consulado traz coordenadas e link do WhatsApp",
-                    bool(c.get("latitude") and c.get("longitude") and c.get("link_whatsapp")), c)
+        r.verificar("Consulado traz as coordenadas", bool(c.get("latitude") and c.get("longitude")), c)
+        r.verificar("Link do WhatsApp fica oculto para quem não é membro", c.get("link_whatsapp") == "", c)
+    resposta = embaixador.get(f"{API}/consulados/{consulado_id}/")
+    r.verificar("Embaixador vê o link do WhatsApp do próprio consulado", bool(resposta.data.get("link_whatsapp")))
 
     # --------------------------------------------------------- Partidas
     r.secao("Calendário de partidas")
@@ -166,7 +174,7 @@ def executar(r: Roteiro) -> None:
         "adversario": "Sport",
         "mando_campo": "CASA",
         "campeonato": "Campeonato Pernambucano",
-        "data_hora": (timezone.now() + timedelta(hours=1)).isoformat(),  # dentro da janela de check-in
+        "data_hora": (timezone.now() + timedelta(hours=1)).isoformat(),
         "canal_transmissao": "TV Coral",
     }
     r.status("Torcedor não cria partida", torcedor.post(f"{API}/partidas/", dados_partida), 403)
@@ -181,32 +189,31 @@ def executar(r: Roteiro) -> None:
                 all(proxima.get(k) for k in ("adversario", "mando_campo", "campeonato", "canal_transmissao")),
                 proxima)
 
-    # --------------------------------------------------------- Check-in
-    r.secao("Check-in")
+    # ------------------------------------------------ Entrada como membro
+    r.secao("Entrada como membro")
     resposta = torcedor.get(f"{API}/consulados/{consulado_id}/")
-    r.verificar("Torcedor ainda não é membro antes do check-in", resposta.data.get("eh_membro") is False)
+    r.verificar("Torcedor ainda não é membro do consulado", resposta.data.get("eh_membro") is False)
 
-    resposta = torcedor.post(f"{API}/checkins/", {"partida": partida_id, "consulado": consulado_id})
-    r.status("Torcedor faz check-in", resposta, 201)
-    checkin_id = resposta.data.get("id")
+    resposta = torcedor.post(f"{API}/consulados/{consulado_id}/solicitar-entrada/")
+    r.status("Torcedor pede para ser membro", resposta, 201)
+    pedido_id = resposta.data.get("id")
+    r.status("Pedido repetido é recusado", torcedor.post(f"{API}/consulados/{consulado_id}/solicitar-entrada/"), 409)
+    r.status("Torcedor não aprova o próprio pedido",
+             torcedor.post(f"{API}/consulados/{consulado_id}/responder-entrada/",
+                           {"solicitacao": pedido_id, "aprovar": True}), 403)
+    resposta = embaixador.get(f"{API}/consulados/{consulado_id}/solicitacoes-entrada/")
+    r.status("Embaixador lista os pedidos de entrada", resposta, 200)
+    r.verificar("Pedido do torcedor aparece para o embaixador", any(p["id"] == pedido_id for p in resposta.data))
+    r.status("Embaixador aprova a entrada",
+             embaixador.post(f"{API}/consulados/{consulado_id}/responder-entrada/",
+                             {"solicitacao": pedido_id, "aprovar": True}), 200)
 
     resposta = torcedor.get(f"{API}/consulados/{consulado_id}/")
-    r.verificar("Primeiro check-in torna o torcedor membro", resposta.data.get("eh_membro") is True)
+    r.verificar("Após a aprovação, o torcedor é membro", resposta.data.get("eh_membro") is True)
     # O responsável já é membro desde a criação; o torcedor é o segundo.
     r.verificar("Consulado passa a ter 2 membros (responsável + torcedor)",
                 resposta.data.get("total_membros") == 2, resposta.data)
 
-    r.status("Segundo check-in na mesma partida é recusado",
-             torcedor.post(f"{API}/checkins/", {"partida": partida_id, "consulado": consulado_id}), 400)
-
-    resposta = torcedor.get(f"{API}/partidas/{partida_id}/ranking-consulados/")
-    r.status("Ranking de check-ins da partida", resposta, 200)
-    ranking = {item["id"]: item["total_checkins"] for item in resposta.data}
-    r.verificar("Contador de check-ins do consulado = 1", ranking.get(consulado_id) == 1, resposta.data)
-
-    r.status("Torcedor cancela o check-in", torcedor.post(f"{API}/checkins/{checkin_id}/cancelar/"), 200)
-    r.status("Após cancelar, novo check-in é aceito",
-             torcedor.post(f"{API}/checkins/", {"partida": partida_id, "consulado": consulado_id}), 201)
 
     # ---------------------------------------------------------- Eventos
     r.secao("Eventos do consulado")
@@ -217,13 +224,13 @@ def executar(r: Roteiro) -> None:
         "descricao": "Encontro da torcida no bar",
         "data_hora_inicio": inicio.isoformat(),
         "data_hora_fim": (inicio + timedelta(hours=3)).isoformat(),
+        "exclusivo_membros": True,
     }
     r.status("Torcedor não cria evento", torcedor.post(f"{API}/eventos/", dados_evento), 403)
     resposta = embaixador.post(f"{API}/eventos/", dados_evento)
     r.status("Responsável cria evento", resposta, 201)
     evento_id = resposta.data.get("id")
-    r.verificar("Evento nasce PENDENTE", resposta.data.get("status_aprovacao") == "PENDENTE")
-    r.status("Admin aprova evento", admin.post(f"{API}/eventos/{evento_id}/aprovar/"), 200)
+    r.verificar("Evento do responsável já nasce publicado", resposta.data.get("status_aprovacao") == "APROVADO")
 
     resposta = torcedor.get(f"{API}/eventos/", {"consulado": consulado_id})
     r.status("Torcedor lista os eventos do consulado", resposta, 200)
@@ -236,7 +243,9 @@ def executar(r: Roteiro) -> None:
 
     registrar(r, "Visitante", "visitante@coral.com", TipoUsuario.TORCEDOR)
     visitante, _ = logar(r, "visitante@coral.com")
-    r.status("Não membro não confirma presença",
+    eventos_visitante = [e["id"] for e in resultados(visitante.get(f"{API}/eventos/"))]
+    r.verificar("Evento exclusivo não aparece para quem não é membro", evento_id not in eventos_visitante)
+    r.status("Não membro não confirma presença em evento exclusivo",
              visitante.post(f"{API}/presencas-evento/", {"evento": evento_id}), 400)
 
     # ------------------------------------------------ Painel do responsável
@@ -245,8 +254,6 @@ def executar(r: Roteiro) -> None:
     r.status("Responsável lista os consulados que administra", resposta, 200)
     r.verificar("Lista contém o consulado dele", any(c["id"] == consulado_id for c in resultados(resposta)))
 
-    resposta = embaixador.get(f"{API}/checkins/", {"partida": partida_id, "consulado": consulado_id, "ativo": "true"})
-    r.status("Responsável consulta check-ins do consulado", resposta, 200)
 
     resposta = embaixador.get(f"{API}/eventos/{evento_id}/presencas/")
     r.status("Responsável vê presenças confirmadas no evento", resposta, 200)

@@ -5,17 +5,19 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from core.models import (
     Aliado,
-    CheckIn,
     Consulado,
     Evento,
     FotoConsulado,
     MembroConsulado,
     Partida,
     PresencaEvento,
+    Reporte,
+    SolicitacaoMembro,
     StatusAprovacao,
     TokenWhitelist,
     Usuario,
 )
+from core.services import ConsuladoService
 
 
 class UsuarioCreationForm(UserCreationForm):
@@ -73,6 +75,21 @@ def rejeitar(modeladmin, request, queryset):
     queryset.update(**fields)
 
 
+@admin.action(description="Aprovar selecionados (o solicitante torcedor vira embaixador)")
+def aprovar_consulados(modeladmin, request, queryset):
+    # Passa pelo serviço para promover o solicitante, como na aba "Solicitações" do painel.
+    servico = ConsuladoService()
+    for consulado in queryset.exclude(status_aprovacao=StatusAprovacao.APROVADO).select_related("responsavel"):
+        servico.aprovar_solicitacao(consulado, moderador=request.user)
+
+
+@admin.action(description="Rejeitar selecionados")
+def rejeitar_consulados(modeladmin, request, queryset):
+    servico = ConsuladoService()
+    for consulado in queryset.exclude(status_aprovacao=StatusAprovacao.REJEITADO):
+        servico.rejeitar_solicitacao(consulado, moderador=request.user)
+
+
 class MembroInline(admin.TabularInline):
     model = MembroConsulado
     extra = 0
@@ -91,7 +108,7 @@ class ConsuladoAdmin(admin.ModelAdmin):
     list_filter = ("status_aprovacao",)
     search_fields = ("nome", "endereco")
     raw_id_fields = ("responsavel",)
-    actions = (aprovar, rejeitar)
+    actions = (aprovar_consulados, rejeitar_consulados)
     inlines = (FotoInline, MembroInline)
 
 
@@ -100,13 +117,6 @@ class PartidaAdmin(admin.ModelAdmin):
     list_display = ("adversario", "mando_campo", "campeonato", "data_hora")
     list_filter = ("mando_campo", "campeonato")
     date_hierarchy = "data_hora"
-
-
-@admin.register(CheckIn)
-class CheckInAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "partida", "consulado", "ativo", "data_checkin")
-    list_filter = ("ativo",)
-    raw_id_fields = ("usuario", "partida", "consulado")
 
 
 @admin.register(Evento)
@@ -137,3 +147,19 @@ class TokenWhitelistAdmin(admin.ModelAdmin):
     list_filter = ("tipo_token",)
     search_fields = ("usuario__email", "jti")
     readonly_fields = ("usuario", "jti", "tipo_token", "criado_em", "expira_em")
+
+
+@admin.register(SolicitacaoMembro)
+class SolicitacaoMembroAdmin(admin.ModelAdmin):
+    list_display = ("usuario", "consulado", "status_aprovacao", "criado_em", "respondido_por")
+    list_filter = ("status_aprovacao",)
+    search_fields = ("usuario__nome", "usuario__email", "consulado__nome")
+    raw_id_fields = ("usuario", "consulado", "respondido_por")
+
+
+@admin.register(Reporte)
+class ReporteAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "usuario", "tipo", "status", "criado_em")
+    list_filter = ("status", "tipo")
+    search_fields = ("mensagem", "usuario__nome", "usuario__email")
+    raw_id_fields = ("usuario", "resolvido_por")

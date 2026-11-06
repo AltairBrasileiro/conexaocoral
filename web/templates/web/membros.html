@@ -1,0 +1,110 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Membros · {{ consulado.nome }} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">Membros</h1>
+  <p class="apoio">{{ consulado.nome }} · {{ membros|length|membros }}. Os cargos aparecem na <a href="{% url 'web:consulado' consulado.pk %}">página pública do consulado</a>.</p>
+  <p class="aviso-cargo"><span class="icon">photo_library</span><span>Membros <strong>com cargo</strong> ganham acesso ao Painel para editar as fotos do consulado. Para tirar esse acesso, deixe o membro “Sem cargo”.</span></p>
+
+  {% if nova_conta %}
+  <div class="card card--padding nova-conta" role="alert">
+    <p class="nova-conta__titulo"><span class="icon icon--vermelho">key</span><strong>Conta criada para {{ nova_conta.nome }}</strong></p>
+    <p class="apoio">Repasse estes dados de acesso agora: a senha provisória não será mostrada de novo.</p>
+    <dl class="nova-conta__dados">
+      <div><dt>E-mail</dt><dd>{{ nova_conta.email }}</dd></div>
+      <div><dt>Senha provisória</dt><dd><code>{{ nova_conta.senha }}</code></dd></div>
+    </dl>
+  </div>
+  {% endif %}
+
+  <h2 class="secao">Pedidos para entrar <span class="pill">{{ pedidos|length }}</span></h2>
+  {% if pedidos %}
+  <ul class="card membros">
+    {% for p in pedidos %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong>{{ p.usuario.nome }}</strong>
+        <small class="apoio">{{ p.usuario.email }} · pediu em {{ p.criado_em|date:"d/m/Y" }}</small>
+      </div>
+      <form method="post" action="{% url 'web:responder-pedido-entrada' p.pk %}" class="pedido__acoes">
+        {% csrf_token %}
+        <button type="submit" name="decisao" value="aprovar" class="botao botao--compacto"><span class="icon">check</span>Aprovar</button>
+        <button type="submit" name="decisao" value="recusar" class="botao botao--contorno botao--compacto"><span class="icon">close</span>Recusar</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">inbox</span>Nenhum pedido aguardando. Quem pedir para entrar no consulado aparece aqui.</div>
+  {% endif %}
+
+  <h2 class="secao">Cadastrar membro</h2>
+  <form method="post" class="card card--padding formulario" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    <div class="formulario__linha formulario__linha--3">
+      {% include "web/_campo.html" with campo=form.email %}
+      {% include "web/_campo.html" with campo=form.nome %}
+      <div class="campo{% if form.cargo.errors or form.cargo_outro.errors %} campo--erro{% endif %}">
+        <label for="{{ form.cargo.id_for_label }}">{{ form.cargo.label }}</label>
+        <select name="cargo" id="{{ form.cargo.id_for_label }}" data-cargo="{{ outro_cargo }}">
+          <option value="">Sem cargo</option>
+          {% for c in cargos %}<option value="{{ c }}"{% if form.cargo.value == c %} selected{% endif %}>{{ c }}</option>{% endfor %}
+          <option value="{{ outro_cargo }}"{% if form.cargo.value == outro_cargo %} selected{% endif %}>Outro cargo…</option>
+        </select>
+        <input type="text" name="cargo_outro" maxlength="60" placeholder="Digite o cargo" value="{{ form.cargo_outro.value|default:'' }}" aria-label="Nome do cargo" data-cargo-outro>
+        {% for erro in form.cargo.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+        {% for erro in form.cargo_outro.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+      </div>
+    </div>
+    <p class="apoio pequeno">Se a pessoa já tiver conta, basta o e-mail. Se não tiver, informe o nome: uma conta de torcedor é criada com uma senha provisória.</p>
+    <div class="formulario__acoes">
+      <button type="submit" class="botao botao--compacto"><span class="icon">person_add</span>Cadastrar membro</button>
+    </div>
+  </form>
+
+  <h2 class="secao">Membros do consulado <span class="pill">{{ membros|length }}</span></h2>
+  <ul class="card membros">
+    {% for m in membros %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong>{{ m.usuario.nome }}</strong>
+        <small class="apoio">{{ m.usuario.email }} · membro desde {{ m.data_filiacao|date:"d/m/Y" }}</small>
+        {% if m.outros_consulados %}
+        <small class="membro__outros">
+          <span class="icon">storefront</span>Também é membro de:
+          {% for c in m.outros_consulados %}<span class="pill">{{ c.nome }}</span>{% endfor %}
+        </small>
+        {% endif %}
+      </div>
+      {% if m.usuario_id == consulado.responsavel_id %}
+        <span class="pill pill--preto"><span class="icon">badge</span>Embaixador</span>
+      {% endif %}
+      <form method="post" action="{% url 'web:definir-cargo' m.pk %}" class="membro__cargo" data-salvar-ao-escolher>
+        {% csrf_token %}
+        <label class="sr-only" for="cargo-{{ m.pk }}">Cargo de {{ m.usuario.nome }}</label>
+        <select id="cargo-{{ m.pk }}" name="cargo" data-cargo="{{ outro_cargo }}">
+          <option value=""{% if not m.cargo %} selected{% endif %}>Sem cargo</option>
+          {% for c in cargos %}<option value="{{ c }}"{% if m.cargo == c %} selected{% endif %}>{{ c }}</option>{% endfor %}
+          {% if m.cargo and m.cargo not in cargos %}<option value="{{ m.cargo }}" selected>{{ m.cargo }}</option>{% endif %}
+          <option value="{{ outro_cargo }}">Outro cargo…</option>
+        </select>
+        <input type="text" name="cargo_outro" maxlength="60" placeholder="Digite o cargo" aria-label="Novo cargo de {{ m.usuario.nome }}" data-cargo-outro>
+        <button type="submit" class="botao-texto" title="Salvar cargo"><span class="icon">check</span><span class="sr-only">Salvar cargo</span></button>
+      </form>
+      {% if m.usuario_id != consulado.responsavel_id %}
+      <form method="post" action="{% url 'web:remover-membro' m.pk %}" data-confirmar="Remover {{ m.usuario.nome }} do consulado?">
+        {% csrf_token %}
+        <button type="submit" class="botao-icone" title="Remover do consulado" aria-label="Remover {{ m.usuario.nome }} do consulado"><span class="icon">person_remove</span></button>
+      </form>
+      {% else %}
+      <span class="botao-icone botao-icone--vazio" aria-hidden="true"></span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

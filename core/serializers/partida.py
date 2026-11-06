@@ -23,11 +23,3 @@ class PartidaResumoSerializer(serializers.ModelSerializer):
         fields = ("id", "adversario", "mando_campo", "campeonato", "data_hora")
         read_only_fields = fields
 
-
-class RankingConsuladoSerializer(serializers.ModelSerializer):
-    total_checkins = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = Consulado
-        fields = ("id", "nome", "total_checkins")
-        read_only_fields = fields

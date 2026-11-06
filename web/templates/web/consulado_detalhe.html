@@ -9,8 +9,8 @@
     <div class="galeria__trilho" data-trilho>
       {% for foto in fotos %}
       <figure class="galeria__foto" data-legenda="{{ foto.legenda }}">
-        <img class="galeria__fundo" src="{{ foto.url }}" alt="" aria-hidden="true" loading="lazy">
-        <img class="galeria__img" src="{{ foto.url }}" alt="{{ foto.legenda|default:consulado.nome }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+        <img class="galeria__fundo" src="{{ foto.src }}" alt="" aria-hidden="true" loading="lazy">
+        <img class="galeria__img" src="{{ foto.src }}" alt="{{ foto.legenda|default:consulado.nome }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
       </figure>
       {% endfor %}
     </div>
@@ -47,11 +47,86 @@
       {% endif %}
     </div>
     <p class="info"><span class="icon icon--vermelho">location_on</span><strong>{{ consulado.endereco }}</strong></p>
-    {% if consulado.responsavel %}
-    <p class="info apoio"><span class="icon">badge</span>Embaixador: {{ consulado.responsavel.nome }}</p>
-    {% endif %}
     {% if consulado.descricao %}<p class="texto">{{ consulado.descricao|linebreaksbr }}</p>{% endif %}
+    {% if pode_gerenciar %}
+    <div class="gestao">
+      <a class="botao-texto" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">dashboard</span>Painel</a>
+      <a class="botao-texto" href="{% url 'web:membros' consulado.pk %}"><span class="icon">manage_accounts</span>Gerenciar membros</a>
+    </div>
+    {% endif %}
   </article>
+
+  <div class="acoes">
+    {% if pode_ver_whatsapp and consulado.link_whatsapp %}
+      <a class="botao botao--contorno" href="{{ consulado.link_whatsapp }}" target="_blank" rel="noopener"><span class="icon">chat</span>Entrar no grupo do WhatsApp</a>
+    {% elif not pode_ver_whatsapp %}
+      <p class="whatsapp-bloqueado"><span class="icon">lock</span>O grupo do WhatsApp é exclusivo para membros do consulado.</p>
+    {% else %}
+      <button type="button" class="botao botao--contorno" disabled><span class="icon">chat</span>Grupo do WhatsApp não informado</button>
+    {% endif %}
+  </div>
+
+  {% if consulado.aprovado and not eh_responsavel %}
+  {% url 'web:consulado' consulado.pk as aqui %}
+  <section class="card card--padding adesao" aria-label="Ser membro do consulado">
+    {% if consulado.eh_membro %}
+      <span class="icon icon--vermelho">verified_user</span>
+      <div class="adesao__texto">
+        <strong>Você é membro do {{ consulado.nome }}</strong>
+        <small class="apoio">Você tem acesso ao grupo do WhatsApp e aos eventos exclusivos.</small>
+      </div>
+      <form method="post" action="{% url 'web:sair-do-consulado' consulado.pk %}" data-confirmar="Sair do {{ consulado.nome }}? Para voltar, será preciso pedir de novo ao embaixador.">
+        {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+        <button type="submit" class="botao-texto"><span class="icon">logout</span>Sair do consulado</button>
+      </form>
+    {% elif pedido_pendente %}
+      <span class="icon">hourglass_top</span>
+      <div class="adesao__texto">
+        <strong>Pedido para ser membro enviado</strong>
+        <small class="apoio">Enviado em {{ pedido_pendente.criado_em|date:"d/m/Y" }}. O embaixador do consulado vai analisar.</small>
+      </div>
+      <form method="post" action="{% url 'web:cancelar-pedido-entrada' pedido_pendente.pk %}">
+        {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+        <button type="submit" class="botao-texto">Cancelar pedido</button>
+      </form>
+    {% else %}
+      <span class="icon icon--vermelho">group_add</span>
+      <div class="adesao__texto">
+        <strong>Quer fazer parte do {{ consulado.nome }}?</strong>
+        <small class="apoio">O embaixador do consulado aprova a sua entrada. Membros entram no grupo do WhatsApp e participam dos eventos exclusivos.</small>
+      </div>
+      <form method="post" action="{% url 'web:solicitar-entrada' consulado.pk %}">
+        {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+        <button type="submit" class="botao botao--compacto"><span class="icon">person_add</span>Solicitar inclusão como membro</button>
+      </form>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if equipe_visivel %}
+  <h2 class="secao">Equipe do consulado <span class="pill">{{ total_equipe }}</span></h2>
+  <div class="card equipe">
+    <ul class="equipe__lista">
+      {% for m in equipe_visivel %}
+      <li class="membro"><div class="membro__info"><strong>{{ m.nome }}</strong><small class="apoio">{{ m.cargo }}</small></div></li>
+      {% endfor %}
+    </ul>
+    {% if equipe_oculta %}
+    <details class="equipe__mais">
+      <summary>
+        <span class="equipe__ver-mais">Ver todos ({{ total_equipe }})</span>
+        <span class="equipe__ver-menos">Mostrar menos</span>
+        <span class="icon expansivel__seta">expand_more</span>
+      </summary>
+      <ul class="equipe__lista">
+        {% for m in equipe_oculta %}
+        <li class="membro"><div class="membro__info"><strong>{{ m.nome }}</strong><small class="apoio">{{ m.cargo }}</small></div></li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <h2 class="secao">Próximo jogo do Santa Cruz</h2>
   {% if partida %}
@@ -60,59 +135,62 @@
     <div class="card linha"><span class="icon">event_busy</span>Nenhum jogo agendado.</div>
   {% endif %}
 
-  <div class="acoes">
-    {% if not partida %}
-      <button type="button" class="botao" disabled>Sem jogo para check-in</button>
-    {% elif meu_checkin and meu_checkin.consulado_id == consulado.id %}
-      <div class="checkin-ok">
-        <span class="icon icon--vermelho">check_circle</span>
-        <strong>Seu check-in está confirmado para este jogo.</strong>
-        <form method="post" action="{% url 'web:cancelar-checkin' meu_checkin.pk %}" data-confirmar="Cancelar seu check-in neste jogo?">
-          {% csrf_token %}
-          <button type="submit" class="botao-texto">Cancelar</button>
-        </form>
-      </div>
-    {% elif meu_checkin %}
-      <button type="button" class="botao" disabled><span class="icon">check</span>Check-in feito em {{ meu_checkin.consulado.nome }}</button>
-    {% else %}
-      <form method="post" action="{% url 'web:fazer-checkin' consulado.pk %}">
-        {% csrf_token %}
-        <input type="hidden" name="partida" value="{{ partida.pk }}">
-        <button type="submit" class="botao"><span class="icon">how_to_reg</span>Fazer check-in</button>
-      </form>
-      {% if not consulado.eh_membro %}
-      <p class="nota">Seu primeiro check-in torna você membro deste consulado.</p>
-      {% endif %}
-    {% endif %}
-
-    {% if consulado.link_whatsapp %}
-      <a class="botao botao--contorno" href="{{ consulado.link_whatsapp }}" target="_blank" rel="noopener"><span class="icon">chat</span>Entrar no grupo do WhatsApp</a>
-    {% else %}
-      <button type="button" class="botao botao--contorno" disabled><span class="icon">chat</span>Entrar no grupo do WhatsApp</button>
-    {% endif %}
-  </div>
 
   <h2 class="secao">Eventos do consulado <span class="pill">{{ eventos|length }}</span></h2>
   {% for evento in eventos %}
-    <article class="card evento">
+    {% with fotos_evento=evento.fotos.all %}
+    <article class="card evento{% if fotos_evento %} evento--com-imagem{% endif %}">
+      {% if fotos_evento %}
+      <div class="evento__imagem galeria galeria--evento" data-galeria>
+        <div class="galeria__trilho" data-trilho>
+          {% for foto in fotos_evento %}
+          <figure class="galeria__foto">
+            <img class="galeria__fundo" src="{{ foto.imagem.url }}" alt="" aria-hidden="true" loading="lazy">
+            <a href="{{ foto.imagem.url }}" target="_blank" rel="noopener" title="Abrir a foto"><img class="galeria__img" src="{{ foto.imagem.url }}" alt="Foto {{ forloop.counter }} do evento {{ evento.titulo }}" loading="lazy"></a>
+          </figure>
+          {% endfor %}
+        </div>
+        {% if fotos_evento|length > 1 %}
+        <button type="button" class="galeria__seta galeria__seta--esq" data-ir="-1" aria-label="Foto anterior"><span class="icon">chevron_left</span></button>
+        <button type="button" class="galeria__seta galeria__seta--dir" data-ir="1" aria-label="Próxima foto"><span class="icon">chevron_right</span></button>
+        <div class="galeria__pontos" data-pontos>{% for foto in fotos_evento %}<span{% if forloop.first %} class="ativo"{% endif %}></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+      {% endif %}
       {% include "web/_data_bloco.html" with data=evento.data_hora_inicio %}
       <div class="evento__corpo">
-        <h3>{{ evento.titulo }}</h3>
+        <h3>{{ evento.titulo }}{% if pode_gerenciar %} <a class="editar-inline" href="{% url 'web:editar-evento' evento.pk %}" title="Editar evento" aria-label="Editar evento"><span class="icon">edit</span></a>{% endif %}{% if pode_ver_confirmados %} <a class="editar-inline" href="{% url 'web:presencas-evento' evento.pk %}" title="Lista de confirmados" aria-label="Lista de confirmados"><span class="icon">list_alt</span></a>{% endif %}</h3>
         <p class="apoio">{{ evento.data_hora_inicio|dia_hora }} até {{ evento.data_hora_fim|hora }}</p>
         {% if evento.descricao %}<p class="texto">{{ evento.descricao|linebreaksbr }}</p>{% endif %}
         <div class="pills">
-          <span class="pill"><span class="icon">group</span>{{ evento.total_confirmados }} confirmados</span>
-          {% if evento.exclusivo_membros %}<span class="pill pill--preto"><span class="icon">lock</span>Exclusivo para membros</span>{% endif %}
+          {% if evento.limite_vagas %}
+            <span class="pill"><span class="icon">group</span>{{ evento.total_confirmados }} de {{ evento.limite_vagas }} vagas</span>
+          {% else %}
+            <span class="pill"><span class="icon">group</span>{{ evento.total_confirmados }} confirmado{{ evento.total_confirmados|pluralize }}</span>
+          {% endif %}
+          {% if evento.exclusivo_membros %}<span class="pill pill--preto"><span class="icon">lock</span>Exclusivo para membros</span>{% else %}<span class="pill"><span class="icon">public</span>Aberto a todos os torcedores</span>{% endif %}
         </div>
         <div class="evento__acao">
           {% if evento.confirmado %}
-            <span class="pill pill--vermelho"><span class="icon">check</span>Presença confirmada</span>
+            <div class="presenca-ok">
+              <span class="pill pill--vermelho"><span class="icon">check</span>Presença confirmada</span>
+              {% if evento.data_hora_inicio > agora %}
+              <form method="post" action="{% url 'web:desmarcar-presenca' evento.pk %}" data-confirmar='Desmarcar sua presença em "{{ evento.titulo }}"?{% if evento.limite_vagas %} Sua vaga fica livre para outra pessoa.{% endif %}'>
+                {% csrf_token %}
+                <button type="submit" class="botao botao--contorno botao--compacto"><span class="icon">event_busy</span>Desmarcar presença</button>
+              </form>
+              {% endif %}
+            </div>
+          {% elif evento.pk in presencas_retiradas %}
+            <span class="pill pill--preto"><span class="icon">block</span>Sua presença foi retirada pela organização</span>
           {% elif not evento.aprovado %}
-            <span class="pill"><span class="icon">hourglass_top</span>Aguardando aprovação</span>
+            <span class="pill"><span class="icon">block</span>Removido pela administração</span>
           {% elif evento.data_hora_fim < agora %}
             <span class="pill">Encerrado</span>
-          {% elif not consulado.eh_membro %}
+          {% elif evento.exclusivo_membros and not consulado.eh_membro %}
             <span class="apoio pequeno"><span class="icon">lock</span>Somente membros confirmam presença</span>
+          {% elif evento.limite_vagas and evento.total_confirmados >= evento.limite_vagas %}
+            <span class="pill pill--preto"><span class="icon">block</span>Vagas esgotadas</span>
           {% else %}
             <form method="post" action="{% url 'web:confirmar-presenca' evento.pk %}">
               {% csrf_token %}
@@ -122,6 +200,7 @@
         </div>
       </div>
     </article>
+    {% endwith %}
   {% empty %}
     <div class="card linha"><span class="icon">celebration</span>Nenhum encontro programado.</div>
   {% endfor %}

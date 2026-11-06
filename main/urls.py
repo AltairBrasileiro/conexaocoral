@@ -11,8 +11,7 @@ Todas as rotas da API ficam sob ``/api/v1/``:
 
     usuarios/ | usuarios/me/
     consulados/ | {id}/aprovar | {id}/rejeitar | {id}/membros | {id}/sair
-    partidas/ | proximas/ | {id}/ranking-consulados/
-    checkins/ | {id}/cancelar/
+    partidas/ | proximas/
     eventos/ | {id}/aprovar | {id}/rejeitar | {id}/presencas
     presencas-evento/
     aliados/ | {id}/aprovar | {id}/rejeitar | {id}/conceder-selo | {id}/revogar-selo
@@ -31,7 +30,6 @@ from rest_framework.routers import DefaultRouter
 
 from core.views import (
     AliadoViewSet,
-    CheckInViewSet,
     ConsuladoViewSet,
     EventoViewSet,
     LoginView,
@@ -51,7 +49,6 @@ router = DefaultRouter()
 router.register("usuarios", UsuarioViewSet, basename="usuario")
 router.register("consulados", ConsuladoViewSet, basename="consulado")
 router.register("partidas", PartidaViewSet, basename="partida")
-router.register("checkins", CheckInViewSet, basename="checkin")
 router.register("eventos", EventoViewSet, basename="evento")
 router.register("presencas-evento", PresencaEventoViewSet, basename="presenca-evento")
 router.register("aliados", AliadoViewSet, basename="aliado")

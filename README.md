@@ -1,6 +1,6 @@
 # Conexão Coral
 
-Projeto 100% Django para consulados de torcedores, partidas, check-ins, eventos e aliados:
+Projeto 100% Django para consulados de torcedores, partidas, eventos e aliados:
 
 * **Interface web** (app `web`): páginas HTML renderizadas pelo Django, com login por sessão.
 * **API REST** (app `core`): Django REST Framework, com autenticação JWT (8h) controlada por whitelist.
@@ -76,13 +76,30 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
 
 ## Regras de negócio implementadas
 
-- **Check-in**: 1 check-in ativo por usuário/partida (validação + índice único parcial
-  no PostgreSQL contra corrida); o primeiro check-in filia o usuário ao consulado;
-  só em consulados aprovados e dentro da janela configurável (`CHECKIN_HORAS_ANTES/DEPOIS`).
-- **Presença em evento**: só membros do consulado organizador, em evento aprovado e não encerrado; uma vez por evento.
-- **Moderação**: consulados, eventos e aliados nascem `PENDENTE` (exceto se criados por admin).
-  Edição relevante do dono em registro aprovado volta para `PENDENTE`.
-- **Eventos exclusivos**: só aparecem na listagem para membros do consulado.
+- **Solicitação de consulado**: qualquer torcedor solicita o cadastro (página "Solicitar novo
+  consulado", com os requisitos do clube em `CONEXAO_CORAL["REQUISITOS_CONSULADO"]`, foto do local
+  opcional e grupo do WhatsApp obrigatório); uma solicitação em análise por vez. O admin aceita ou
+  recusa (com motivo) na aba "Solicitações" do painel; ao aceitar, o torcedor vira embaixador.
+- **Entrar e sair de consulados**: o torcedor pede para ser membro e o embaixador aprova ou recusa
+  em "Gerenciar membros"; o membro sai quando quiser (o embaixador não sai do próprio consulado).
+  Tudo isso também fica em "Minha conta", junto com os eventos com presença confirmada.
+- **Grupo do WhatsApp**: o link só é exibido para membros do consulado (e para o embaixador e o
+  admin), na página, no mapa e na API.
+- **Membros e cargos**: o embaixador cadastra membros (por e-mail; sem conta, cria uma conta de
+  torcedor com senha provisória), remove membros e define cargos, exibidos na página pública.
+  Membros com cargo acessam o Painel para editar as fotos do consulado e ver as listas de confirmados.
+- **Eventos**: o embaixador (ou admin) cria, edita e exclui os eventos do próprio consulado, publicados
+  na hora, com até 6 fotos e limite de vagas opcional.
+- **Presença em eventos**: eventos livres aceitam qualquer torcedor; os exclusivos só aparecem (e só
+  aceitam confirmação) para membros. O torcedor desmarca a presença até o início do evento. O
+  embaixador, os membros com cargo e o admin veem a lista de confirmados, retiram pessoas (que não
+  conseguem confirmar de novo, até serem readmitidas) e exportam a lista em PDF.
+- **Reportes**: qualquer usuário envia problemas ou sugestões ("Reportar problema ou sugestão", no menu
+  do perfil); só administradores veem, na aba "Reportes" do painel, e marcam como resolvidos.
+- **Apoie o app**: página com Pix (QR Code e copia e cola) configurado em `CONEXAO_CORAL["PIX"]`
+  (por enquanto com chave fictícia e aviso de demonstração).
+- **Moderação de aliados**: nascem `PENDENTE` (exceto se criados por admin); edição do dono em aliado
+  aprovado volta para `PENDENTE`.
 - **Selo verificado**: apenas para aliados aprovados (garantido também por `CheckConstraint`).
 
 ## Produção (https://conexaocoral.com.br)

@@ -1,0 +1,95 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Minha conta · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+{% url 'web:minha-conta' as aqui %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Minha conta</h1>
+  <p class="apoio">{{ user.nome }} · {{ user.email }} · {{ user|papel }}</p>
+
+  <div class="secao secao--acao">
+    <h2>Meus consulados <span class="pill">{{ filiacoes|length }}</span></h2>
+    <a class="botao-texto" href="{% url 'web:consulados' %}"><span class="icon">map</span>Encontrar consulados</a>
+  </div>
+  {% if filiacoes %}
+  <ul class="card membros">
+    {% for f in filiacoes %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong><a href="{% url 'web:consulado' f.consulado.pk %}">{{ f.consulado.nome }}</a></strong>
+        <small class="apoio">Membro desde {{ f.data_filiacao|date:"d/m/Y" }}{% if f.cargo %} · {{ f.cargo }}{% endif %}</small>
+      </div>
+      {% if f.consulado.responsavel_id == user.id %}
+        <span class="pill pill--preto"><span class="icon">badge</span>Embaixador</span>
+      {% else %}
+        <form method="post" action="{% url 'web:sair-do-consulado' f.consulado.pk %}" data-confirmar="Sair do {{ f.consulado.nome }}? Para voltar, será preciso pedir de novo ao embaixador.">
+          {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+          <button type="submit" class="botao botao--contorno botao--compacto"><span class="icon">logout</span>Sair</button>
+        </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">groups</span><span>Você ainda não é membro de nenhum consulado. Abra um consulado no mapa e toque em <strong>Solicitar inclusão como membro</strong>.</span></div>
+  {% endif %}
+
+  {% if pedidos %}
+  <h2 class="secao">Meus pedidos para entrar</h2>
+  <ul class="card membros">
+    {% for p in pedidos %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong><a href="{% url 'web:consulado' p.consulado.pk %}">{{ p.consulado.nome }}</a></strong>
+        <small class="apoio">Enviado em {{ p.criado_em|date:"d/m/Y" }}{% if p.respondido_em %} · respondido em {{ p.respondido_em|date:"d/m/Y" }}{% endif %}</small>
+      </div>
+      {% if p.status_aprovacao == "PENDENTE" %}
+        <span class="pill"><span class="icon">hourglass_top</span>Aguardando o embaixador</span>
+        <form method="post" action="{% url 'web:cancelar-pedido-entrada' p.pk %}">
+          {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+          <button type="submit" class="botao-texto">Cancelar</button>
+        </form>
+      {% else %}
+        <span class="pill pill--preto">Recusado</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2 class="secao">Eventos com presença confirmada</h2>
+  {% for p in eventos_proximos %}
+    <article class="card evento">
+      {% include "web/_data_bloco.html" with data=p.evento.data_hora_inicio %}
+      <div class="evento__corpo">
+        <h3>{{ p.evento.titulo }}</h3>
+        <p class="apoio">{{ p.evento.data_hora_inicio|dia_hora }} até {{ p.evento.data_hora_fim|hora }}</p>
+        <div class="pills">
+          <a class="pill pill--link" href="{% url 'web:consulado' p.evento.consulado.pk %}"><span class="icon">storefront</span>{{ p.evento.consulado.nome }}</a>
+          <span class="pill pill--vermelho"><span class="icon">check</span>Presença confirmada</span>
+        </div>
+        {% if p.evento.data_hora_inicio > agora %}
+        <form method="post" action="{% url 'web:desmarcar-presenca' p.evento.pk %}" class="evento__acao" data-confirmar='Desmarcar sua presença em "{{ p.evento.titulo }}"?'>
+          {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+          <button type="submit" class="botao botao--contorno botao--compacto"><span class="icon">event_busy</span>Desmarcar presença</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+  {% empty %}
+    <div class="card linha"><span class="icon">celebration</span>Nenhum evento futuro com presença confirmada.</div>
+  {% endfor %}
+  {% if eventos_anteriores %}
+  <details class="card expansivel">
+    <summary><span class="icon">history</span>Eventos anteriores ({{ eventos_anteriores|length }})<span class="icon expansivel__seta">expand_more</span></summary>
+    <ul class="lista">
+      {% for p in eventos_anteriores %}
+        <li><span class="icon">event</span><span>{{ p.evento.titulo }} <small class="apoio">· {{ p.evento.consulado.nome }}</small></span><small>{{ p.evento.data_hora_inicio|date:"d/m/Y" }}</small></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% comment %}
+  Campo de upload de imagem com pré-visualização.
+  Parâmetros: campo (BoundField); atual (URL da imagem já salva, opcional);
+  removivel (mostra "Remover imagem", que o ClearableFileInput lê como "<nome>-clear").
+{% endcomment %}
+<div class="campo campo-imagem{% if campo.errors %} campo--erro{% endif %}">
+  <span class="campo__rotulo">{{ campo.label }}</span>
+  <label class="campo-imagem__area" for="{{ campo.id_for_label }}">
+    <img class="campo-imagem__previa" data-previa-de="{{ campo.id_for_label }}" alt=""{% if atual %} src="{{ atual }}"{% else %} hidden{% endif %}>
+    <span class="campo-imagem__vazio"{% if atual %} hidden{% endif %} data-vazio-de="{{ campo.id_for_label }}">
+      <span class="icon">add_photo_alternate</span>
+      <span>Escolher imagem</span>
+    </span>
+  </label>
+  <input type="file" name="{{ campo.html_name }}" id="{{ campo.id_for_label }}" accept="image/jpeg,image/png,image/webp" class="campo-imagem__input" data-previa-imagem>
+  {% if campo.help_text %}<small class="campo__ajuda">{{ campo.help_text }}</small>{% endif %}
+  {% if removivel and atual %}
+  <label class="aceite aceite--pequeno">
+    <input type="checkbox" name="{{ campo.html_name }}-clear" id="{{ campo.id_for_label }}-clear">
+    <span>Remover a imagem atual</span>
+  </label>
+  {% endif %}
+  {% for erro in campo.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+</div>

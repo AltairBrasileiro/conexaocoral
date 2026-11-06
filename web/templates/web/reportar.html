@@ -1,0 +1,32 @@
+{% extends "web/app.html" %}
+{% block titulo %}Reportar problema ou sugestão · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <h1 class="titulo-pagina">Reportar problema ou sugestão</h1>
+  <p class="apoio">Encontrou algo errado ou tem uma ideia para melhorar o app? Conte para a gente. Sua mensagem vai direto para a administração do Conexão Coral.</p>
+
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    <fieldset class="tipo-reporte">
+      <legend class="campo__rotulo">{{ form.tipo.label }}</legend>
+      {% for opcao in form.tipo %}
+      <label class="tipo-reporte__opcao">
+        {{ opcao.tag }}
+        <span class="icon">{% if opcao.data.value == "PROBLEMA" %}bug_report{% else %}lightbulb{% endif %}</span>
+        <span>{{ opcao.choice_label }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+    {% include "web/_campo.html" with campo=form.mensagem %}
+    {% include "web/_campo_imagem.html" with campo=form.captura atual="" %}
+    {{ form.pagina }}
+    {% if form.pagina.value %}<p class="apoio pequeno">Vamos anexar a página em que você estava: <code>{{ form.pagina.value }}</code></p>{% endif %}
+    <div class="formulario__acoes">
+      <button type="submit" class="botao botao--compacto"><span class="icon">send</span>Enviar</button>
+    </div>
+  </form>
+  <p class="apoio pequeno nota-painel"><span class="icon">lock</span> Só a administração do app vê os reportes.</p>
+</div>
+{% endblock %}

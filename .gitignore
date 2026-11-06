@@ -33,3 +33,8 @@ db.sqlite3
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Arquivos enviados pelos usuários (fotos de consulados e eventos, capturas dos reportes)
+media/consulados/
+media/eventos/
+media/reportes/

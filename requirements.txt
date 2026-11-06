@@ -9,6 +9,9 @@ drf-spectacular>=0.27                 # Documentação OpenAPI / Swagger
 django-cors-headers>=4.4              # CORS para o app Flutter Web
 psycopg[binary]>=3.2                  # Driver PostgreSQL (psycopg 3)
 python-decouple>=3.8                  # Leitura de variáveis de ambiente (.env)
+Pillow>=11,<13                        # Validação de uploads de imagem (ImageField)
+reportlab>=4.4,<4.5                   # Exportação da lista de presença em PDF
+qrcode>=8,<9                          # QR Code do Pix na página "Apoie o app" (SVG, sem Pillow)
 # ------------------------------------------------------------
 # Produção
 # ------------------------------------------------------------

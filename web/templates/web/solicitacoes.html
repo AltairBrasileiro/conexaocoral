@@ -1,0 +1,63 @@
+{% extends "web/app.html" %}
+{% load coral l10n %}
+{% block titulo %}Solicitações · Painel · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Administrador</h1>
+  {% include "web/_painel_abas.html" %}
+
+  <h2 class="secao">Novos consulados aguardando análise <span class="pill">{{ pendentes|length }}</span></h2>
+  {% for c in pendentes %}
+  <article class="card solicitacao">
+    <header class="solicitacao__topo">
+      <div>
+        <h3>{{ c.nome }}</h3>
+        <p class="apoio pequeno">Enviada em {{ c.criado_em|dia_hora }}</p>
+      </div>
+      <span class="pill"><span class="icon">hourglass_top</span>Aguardando</span>
+    </header>
+    {% with foto=c.fotos.all|first %}{% if foto %}
+    <a class="solicitacao__foto" href="{{ foto.src }}" target="_blank" rel="noopener" title="Abrir a foto do local">
+      <img src="{{ foto.src }}" alt="Foto do local enviada pelo solicitante" loading="lazy">
+    </a>
+    {% endif %}{% endwith %}
+    <dl class="dados dados--compacto">
+      <div><dt><span class="icon">person</span>Solicitante</dt><dd>{{ c.responsavel.nome }} · {{ c.responsavel.email }}{% if c.responsavel.telefone %} · {{ c.responsavel.telefone }}{% endif %} ({{ c.responsavel|papel }})</dd></div>
+      <div><dt><span class="icon">location_on</span>Endereço</dt><dd>{{ c.endereco }} · <a href="https://www.openstreetmap.org/?mlat={{ c.latitude|unlocalize }}&amp;mlon={{ c.longitude|unlocalize }}#map=17/{{ c.latitude|unlocalize }}/{{ c.longitude|unlocalize }}" target="_blank" rel="noopener">ver no mapa</a></dd></div>
+      <div><dt><span class="icon">chat</span>Grupo do WhatsApp</dt><dd>{% if c.link_whatsapp %}<a href="{{ c.link_whatsapp }}" target="_blank" rel="noopener">{{ c.link_whatsapp }}</a>{% else %}Não informado{% endif %}</dd></div>
+      <div><dt><span class="icon">info</span>Sobre o consulado</dt><dd>{{ c.descricao|default:"Não informado"|linebreaksbr }}</dd></div>
+    </dl>
+    <div class="solicitacao__acoes">
+      <form method="post" action="{% url 'web:aprovar-solicitacao' c.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="botao botao--compacto"><span class="icon">check</span>Aprovar</button>
+      </form>
+      <details class="recusa">
+        <summary class="botao botao--contorno botao--compacto"><span class="icon">close</span>Recusar</summary>
+        <form method="post" action="{% url 'web:rejeitar-solicitacao' c.pk %}" class="recusa__form">
+          {% csrf_token %}
+          {% include "web/_campo.html" with campo=form_rejeicao.motivo %}
+          <button type="submit" class="botao botao--perigo botao--compacto">Confirmar recusa</button>
+        </form>
+      </details>
+    </div>
+  </article>
+  {% empty %}
+    {% include "web/_vazio.html" with icone="task_alt" titulo="Nenhuma solicitação pendente" mensagem="Quando um torcedor pedir o cadastro de um consulado, o pedido aparece aqui." %}
+  {% endfor %}
+
+  {% if recentes %}
+  <h2 class="secao">Cadastros recentes</h2>
+  <ul class="card lista lista--solta">
+    {% for c in recentes %}
+    <li>
+      <span class="icon">{% if c.aprovado %}verified{% else %}block{% endif %}</span>
+      <span><a href="{% url 'web:consulado' c.pk %}">{{ c.nome }}</a> <small class="apoio">· {{ c.responsavel.nome }}{% if c.motivo_rejeicao %} · “{{ c.motivo_rejeicao }}”{% endif %}</small></span>
+      <span class="pill{% if not c.aprovado %} pill--preto{% endif %}">{{ c.get_status_aprovacao_display }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

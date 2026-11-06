@@ -1,0 +1,42 @@
+{% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+{% include "web/_campo.html" with campo=form.titulo %}
+{% include "web/_campo.html" with campo=form.descricao %}
+<div class="formulario__linha">
+  {% include "web/_campo.html" with campo=form.inicio %}
+  {% include "web/_campo.html" with campo=form.duracao %}
+</div>
+{% include "web/_campo.html" with campo=form.limite_vagas %}
+<div class="campo campo-fotos{% if form.fotos.errors %} campo--erro{% endif %}">
+  <span class="campo__rotulo">{{ form.fotos.label }}</span>
+  {% if form.fotos_atuais %}
+  <ul class="fotos-evento" aria-label="Fotos atuais do evento">
+    {% for foto in form.fotos_atuais %}
+    <li>
+      <img src="{{ foto.imagem.url }}" alt="Foto {{ forloop.counter }} do evento" loading="lazy">
+      <label class="fotos-evento__remover">
+        <input type="checkbox" name="remover_fotos" value="{{ foto.pk }}"{% if foto.pk|stringformat:"s" in form.remover_fotos.value %} checked{% endif %}>
+        <span>Remover</span>
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <label class="campo-imagem__area campo-fotos__area" for="{{ form.fotos.id_for_label }}">
+    <span class="campo-imagem__vazio">
+      <span class="icon">add_photo_alternate</span>
+      <span>{% if form.fotos_atuais %}Adicionar mais fotos{% else %}Escolher fotos{% endif %}</span>
+    </span>
+  </label>
+  <input type="file" name="{{ form.fotos.html_name }}" id="{{ form.fotos.id_for_label }}" multiple accept="image/jpeg,image/png,image/webp" class="campo-imagem__input" data-previa-varias>
+  <ul class="fotos-evento fotos-evento--novas" data-previa-varias-de="{{ form.fotos.id_for_label }}" hidden></ul>
+  <small class="campo__ajuda">{{ form.fotos.help_text }} Até {{ maximo_fotos_evento }} fotos por evento.</small>
+  {% for erro in form.fotos.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+</div>
+<label class="interruptor">
+  {{ form.exclusivo_membros }}
+  <span class="interruptor__trilho" aria-hidden="true"></span>
+  <span>
+    <strong>{{ form.exclusivo_membros.label }}</strong>
+    <small class="apoio">Só membros do consulado veem e confirmam presença. Desligado, o evento é livre: aparece para todos os torcedores e qualquer um pode confirmar presença.</small>
+  </span>
+</label>

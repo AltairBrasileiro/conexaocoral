@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from core.filters import PartidaFilter
 from core.models import Partida
 from core.permissions import IsAdminOrReadOnly
-from core.serializers import PartidaSerializer, RankingConsuladoSerializer
+from core.serializers import PartidaSerializer
 from core.services import PartidaService
 
 
@@ -35,8 +35,3 @@ class PartidaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(self.service.proximas_partidas(limite), many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["get"], url_path="ranking-consulados", serializer_class=RankingConsuladoSerializer)
-    def ranking_consulados(self, request: Request, pk: str | None = None) -> Response:
-        """Consulados com mais check-ins ativos na partida."""
-        qs = self.service.ranking_consulados(self.get_object())
-        return Response(self.get_serializer(qs, many=True).data)

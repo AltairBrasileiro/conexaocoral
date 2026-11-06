@@ -1,0 +1,61 @@
+{% extends "web/app.html" %}
+{% block titulo %}Fotos · {{ consulado.nome }} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">Fotos do consulado</h1>
+  <p class="apoio">{{ consulado.nome }} · <a href="{% url 'web:consulado' consulado.pk %}">ver a página pública</a></p>
+  <p class="apoio">As fotos aparecem na galeria da página do consulado. A <strong>capa</strong> é a primeira da galeria e a que aparece no resumo do mapa. Até {{ maximo_fotos }} fotos.</p>
+
+  <div class="secao secao--acao">
+    <h2>Galeria <span class="pill">{{ fotos|length }}/{{ maximo_fotos }}</span></h2>
+  </div>
+  {% if fotos %}
+  <ul class="fotos-grade">
+    {% for foto in fotos %}
+    <li class="card foto-item">
+      <a class="foto-item__imagem" href="{{ foto.src }}" target="_blank" rel="noopener" title="Abrir a foto">
+        <img src="{{ foto.src }}" alt="{{ foto.legenda|default:'Foto do consulado' }}" loading="lazy">
+        {% if forloop.first %}<span class="pill pill--vermelho foto-item__capa"><span class="icon">star</span>Capa</span>{% endif %}
+      </a>
+      <form method="post" action="{% url 'web:legenda-foto' foto.pk %}" class="foto-item__legenda">
+        {% csrf_token %}
+        <label class="sr-only" for="legenda-{{ foto.pk }}">Legenda da foto</label>
+        <input id="legenda-{{ foto.pk }}" name="legenda" value="{{ foto.legenda }}" maxlength="150" placeholder="Sem legenda">
+        <button type="submit" class="botao-texto" title="Salvar legenda"><span class="icon">check</span><span class="sr-only">Salvar legenda</span></button>
+      </form>
+      <div class="foto-item__acoes">
+        {% if not forloop.first %}
+        <form method="post" action="{% url 'web:capa-foto' foto.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="botao-texto"><span class="icon">star</span>Definir como capa</button>
+        </form>
+        {% else %}<span></span>{% endif %}
+        <form method="post" action="{% url 'web:remover-foto' foto.pk %}" data-confirmar="Remover esta foto da galeria? Não dá para desfazer.">
+          {% csrf_token %}
+          <button type="submit" class="botao-icone" title="Remover foto" aria-label="Remover foto"><span class="icon">delete</span></button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">photo_library</span>O consulado ainda não tem fotos. Envie a primeira abaixo: ela vira a capa.</div>
+  {% endif %}
+
+  <h2 class="secao">Enviar foto</h2>
+  {% if pode_enviar %}
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "web/_campo_imagem.html" with campo=form.imagem atual="" %}
+    {% include "web/_campo.html" with campo=form.legenda %}
+    <div class="formulario__acoes">
+      <button type="submit" class="botao botao--compacto"><span class="icon">upload</span>Enviar foto</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="card linha"><span class="icon">info</span>A galeria já tem {{ maximo_fotos }} fotos, o máximo. Remova uma para enviar outra.</div>
+  {% endif %}
+</div>
+{% endblock %}

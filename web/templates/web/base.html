@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static coral %}<!doctype html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
@@ -10,13 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0&display=block">
-  <link rel="stylesheet" href="{% static 'web/coral.css' %}">
+  <link rel="stylesheet" href="{% estatico 'web/coral.css' %}">
   {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
   {% block corpo %}{% endblock %}
   {% include "web/_mensagens.html" %}
-  <script src="{% static 'web/coral.js' %}" defer></script>
+  <script src="{% estatico 'web/coral.js' %}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

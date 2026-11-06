@@ -2,16 +2,23 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from core.models import Consulado, FotoConsulado, MembroConsulado
+from core.models import Consulado, FotoConsulado, MembroConsulado, SolicitacaoMembro
 from core.serializers.base import UsuarioResumoSerializer, ValidacaoServiceMixin
 from core.services import ConsuladoService
 
 
 class FotoConsuladoSerializer(serializers.ModelSerializer):
+    # Arquivo enviado ou link externo, sempre como URL absoluta.
+    url = serializers.SerializerMethodField()
+
     class Meta:
         model = FotoConsulado
         fields = ("id", "url", "legenda")
         read_only_fields = fields
+
+    def get_url(self, obj: FotoConsulado) -> str:
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.src) if request and obj.imagem else obj.src
 
 
 class ConsuladoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
@@ -25,9 +32,10 @@ class ConsuladoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
         model = Consulado
         fields = (
             "id", "nome", "descricao", "endereco", "latitude", "longitude", "link_whatsapp", "logo_url",
-            "status_aprovacao", "responsavel", "fotos", "total_membros", "eh_membro", "criado_em",
+            "status_aprovacao", "motivo_rejeicao", "responsavel", "fotos", "total_membros", "eh_membro",
+            "criado_em",
         )
-        read_only_fields = ("id", "status_aprovacao", "criado_em")
+        read_only_fields = ("id", "status_aprovacao", "motivo_rejeicao", "criado_em")
 
     def get_total_membros(self, obj: Consulado) -> int:
         valor = getattr(obj, "total_membros", None)
@@ -39,9 +47,16 @@ class ConsuladoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
             return bool(valor)
         return obj.filiacoes.filter(usuario=self.usuario_logado).exists()
 
+    def to_representation(self, instance: Consulado) -> dict:
+        dados = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and not ConsuladoService().pode_ver_whatsapp(request.user, instance):
+            dados["link_whatsapp"] = ""  # o grupo do WhatsApp é só para membros
+        return dados
+
     def validate(self, attrs: dict) -> dict:
         if self.instance is None:  # criação
-            self.executar_validacao(ConsuladoService.validar_criacao, self.usuario_logado)
+            self.executar_validacao(ConsuladoService().validar_criacao, self.usuario_logado)
         return attrs
 
 
@@ -50,5 +65,14 @@ class MembroConsuladoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MembroConsulado
-        fields = ("id", "usuario", "data_filiacao")
+        fields = ("id", "usuario", "cargo", "data_filiacao")
+        read_only_fields = fields
+
+
+class SolicitacaoMembroSerializer(serializers.ModelSerializer):
+    usuario = UsuarioResumoSerializer(read_only=True)
+
+    class Meta:
+        model = SolicitacaoMembro
+        fields = ("id", "usuario", "consulado", "status_aprovacao", "criado_em", "respondido_em")
         read_only_fields = fields

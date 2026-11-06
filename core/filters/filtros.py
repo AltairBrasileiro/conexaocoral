@@ -4,7 +4,7 @@ from __future__ import annotations
 import django_filters as filters
 from django.db.models import QuerySet
 
-from core.models import Aliado, CheckIn, Consulado, Evento, Partida
+from core.models import Aliado, Consulado, Evento, Partida
 
 
 class ConsuladoFilter(filters.FilterSet):
@@ -37,12 +37,6 @@ class PartidaFilter(filters.FilterSet):
     class Meta:
         model = Partida
         fields = ("mando_campo",)
-
-
-class CheckInFilter(filters.FilterSet):
-    class Meta:
-        model = CheckIn
-        fields = ("partida", "consulado", "ativo")
 
 
 class EventoFilter(filters.FilterSet):

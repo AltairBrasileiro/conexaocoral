@@ -1,0 +1,61 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Reportes · Painel · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Administrador</h1>
+  {% include "web/_painel_abas.html" %}
+
+  <form method="get" class="filtros-reporte" data-auto-enviar>
+    <div class="campo">
+      <label for="filtro-status">Status</label>
+      <select id="filtro-status" name="status">
+        <option value="todos"{% if not status_filtro %} selected{% endif %}>Todos</option>
+        {% for valor, rotulo in status_opcoes %}<option value="{{ valor }}"{% if valor == status_filtro %} selected{% endif %}>{{ rotulo }}s</option>{% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-tipo">Tipo</label>
+      <select id="filtro-tipo" name="tipo">
+        <option value=""{% if not tipo_filtro %} selected{% endif %}>Problemas e sugestões</option>
+        {% for valor, rotulo in tipo_opcoes %}<option value="{{ valor }}"{% if valor == tipo_filtro %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+      </select>
+    </div>
+    <noscript><button type="submit" class="botao botao--compacto">Filtrar</button></noscript>
+  </form>
+
+  <h2 class="secao">Reportes <span class="pill">{{ reportes|length }}</span></h2>
+  {% for r in reportes %}
+  <article class="card reporte{% if r.status == 'RESOLVIDO' %} reporte--resolvido{% endif %}">
+    <header class="reporte__topo">
+      <span class="pill{% if r.tipo == 'PROBLEMA' %} pill--vermelho{% endif %}"><span class="icon">{% if r.tipo == "PROBLEMA" %}bug_report{% else %}lightbulb{% endif %}</span>{{ r.get_tipo_display }}</span>
+      <span class="apoio pequeno">#{{ r.pk }} · {{ r.criado_em|dia_hora }}</span>
+      {% if r.status == "RESOLVIDO" %}<span class="pill"><span class="icon">task_alt</span>Resolvido</span>{% endif %}
+    </header>
+    <p class="reporte__mensagem">{{ r.mensagem|linebreaksbr }}</p>
+    <dl class="reporte__dados">
+      <div><dt>Enviado por</dt><dd>{% if r.usuario %}{{ r.usuario.nome }} · {{ r.usuario.email }} ({{ r.usuario|papel }}){% else %}Usuário removido{% endif %}</dd></div>
+      {% if r.pagina %}<div><dt>Página</dt><dd><a href="{{ r.pagina }}" target="_blank" rel="noopener">{{ r.pagina }}</a></dd></div>{% endif %}
+      {% if r.resolvido_em %}<div><dt>Resolvido</dt><dd>{{ r.resolvido_em|dia_hora }}{% if r.resolvido_por %} por {{ r.resolvido_por.nome }}{% endif %}</dd></div>{% endif %}
+    </dl>
+    {% if r.captura %}
+    <a class="reporte__captura" href="{{ r.captura.url }}" target="_blank" rel="noopener" title="Abrir a captura de tela">
+      <img src="{{ r.captura.url }}" alt="Captura de tela enviada no reporte #{{ r.pk }}" loading="lazy">
+    </a>
+    {% endif %}
+    <form method="post" action="{% url 'web:responder-reporte' r.pk %}" class="reporte__acoes">
+      {% csrf_token %}
+      <input type="hidden" name="proximo" value="{{ request.get_full_path }}">
+      {% if r.status == "ABERTO" %}
+        <button type="submit" name="acao" value="resolver" class="botao botao--compacto"><span class="icon">task_alt</span>Marcar como resolvido</button>
+      {% else %}
+        <button type="submit" name="acao" value="reabrir" class="botao-texto"><span class="icon">undo</span>Reabrir</button>
+      {% endif %}
+    </form>
+  </article>
+  {% empty %}
+    {% include "web/_vazio.html" with icone="inbox" titulo="Nenhum reporte por aqui" mensagem="Quando um usuário enviar um problema ou sugestão, ele aparece nesta aba." %}
+  {% endfor %}
+</div>
+{% endblock %}

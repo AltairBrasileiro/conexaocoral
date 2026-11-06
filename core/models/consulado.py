@@ -4,8 +4,10 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from core.models.base import AprovavelModel
-from core.models.choices import TipoUsuario
-from core.validators import validar_link_whatsapp
+from core.models.choices import StatusAprovacao, TipoUsuario
+from core.validators import (
+    upload_foto_consulado, validar_extensao_imagem, validar_link_whatsapp, validar_tamanho_imagem,
+)
 
 
 class Consulado(AprovavelModel):
@@ -33,6 +35,8 @@ class Consulado(AprovavelModel):
     link_whatsapp = models.URLField("link do WhatsApp", blank=True, validators=[validar_link_whatsapp])
     # Emblema exibido no pino do mapa; sem logo, o app usa o pino padrão.
     logo_url = models.URLField("URL do logo", max_length=500, blank=True)
+    # Preenchido pelo administrador ao recusar a solicitação de cadastro.
+    motivo_rejeicao = models.TextField("motivo da rejeição", blank=True)
 
     membros = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -61,6 +65,8 @@ class MembroConsulado(models.Model):
         Consulado, on_delete=models.CASCADE, related_name="filiacoes", verbose_name="consulado",
     )
     data_filiacao = models.DateTimeField("data de filiação", auto_now_add=True)
+    # Definido pelo embaixador (ex.: "Vice-presidente", "Tesoureiro") e exibido na página pública.
+    cargo = models.CharField("cargo", max_length=60, blank=True)
 
     class Meta:
         verbose_name = "membro de consulado"
@@ -81,7 +87,12 @@ class FotoConsulado(models.Model):
     consulado = models.ForeignKey(
         Consulado, on_delete=models.CASCADE, related_name="fotos", verbose_name="consulado",
     )
-    url = models.URLField("URL da imagem", max_length=500)
+    # A foto pode ser um arquivo enviado (ex.: na solicitação do consulado) ou um link externo.
+    imagem = models.ImageField(
+        "imagem", upload_to=upload_foto_consulado, blank=True,
+        validators=[validar_extensao_imagem, validar_tamanho_imagem],
+    )
+    url = models.URLField("URL da imagem", max_length=500, blank=True)
     legenda = models.CharField("legenda", max_length=150, blank=True)
     ordem = models.PositiveSmallIntegerField("ordem", default=0)
 
@@ -91,4 +102,46 @@ class FotoConsulado(models.Model):
         ordering = ("ordem", "id")
 
     def __str__(self) -> str:
-        return self.legenda or self.url
+        return self.legenda or self.src
+
+    @property
+    def src(self) -> str:
+        """Endereço para exibir a foto: o arquivo enviado tem prioridade sobre o link."""
+        return self.imagem.url if self.imagem else self.url
+
+
+class SolicitacaoMembro(models.Model):
+    """Pedido de um torcedor para entrar num consulado; o embaixador aprova ou recusa."""
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="solicitacoes_membro",
+        verbose_name="usuário",
+    )
+    consulado = models.ForeignKey(
+        Consulado, on_delete=models.CASCADE, related_name="solicitacoes_membro", verbose_name="consulado",
+    )
+    status_aprovacao = models.CharField(
+        "status", max_length=10, choices=StatusAprovacao.choices, default=StatusAprovacao.PENDENTE, db_index=True,
+    )
+    criado_em = models.DateTimeField("solicitado em", auto_now_add=True)
+    respondido_em = models.DateTimeField("respondido em", null=True, blank=True)
+    respondido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name="respondido por",
+    )
+
+    class Meta:
+        verbose_name = "solicitação para ser membro"
+        verbose_name_plural = "solicitações para ser membro"
+        ordering = ("criado_em",)
+        constraints = [
+            # Um pedido em análise por vez para cada par usuário-consulado.
+            models.UniqueConstraint(
+                fields=["usuario", "consulado"],
+                condition=models.Q(status_aprovacao="PENDENTE"),
+                name="uq_solicitacao_membro_pendente",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.usuario} → {self.consulado} ({self.get_status_aprovacao_display()})"

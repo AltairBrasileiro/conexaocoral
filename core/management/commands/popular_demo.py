@@ -21,7 +21,6 @@ from django.utils import timezone
 from core.models import (
     Aliado,
     CategoriaAliado,
-    CheckIn,
     Consulado,
     Evento,
     FotoConsulado,
@@ -93,7 +92,7 @@ FOTOS_EXCLUSIVAS = {
 }
 
 # Registros de versões anteriores da demo que são renomeados (e não recriados),
-# preservando membros, fotos e check-ins já vinculados a eles.
+# preservando membros e fotos já vinculados a eles.
 CONSULADOS_RENOMEADOS = {"Consulado Coral João Pessoa": "Consulado CoralJampa"}
 PARTIDAS_RENOMEADAS = {
     ("Sport", "Campeonato Pernambucano"): ("Floresta", "Série C"),
@@ -195,13 +194,10 @@ class Command(BaseCommand):
                          self._dia(agora, 10, 16), exclusivo=False),
         ]
 
-        # A torcedora demo já é membro de Boa Viagem, com check-in e presença,
+        # A torcedora demo já é membro de Boa Viagem, com presença confirmada,
         # para os contadores do painel do responsável não aparecerem zerados.
         torcedora = usuarios["torcedor@coral.com"]
         MembroConsulado.objects.get_or_create(usuario=torcedora, consulado=boa_viagem)
-        CheckIn.objects.get_or_create(
-            usuario=torcedora, partida=partidas[1], ativo=True, defaults={"consulado": boa_viagem},
-        )
         PresencaEvento.objects.get_or_create(usuario=torcedora, evento=eventos[0])
 
         for nome, categoria, descricao, instagram, verificado in ALIADOS:
