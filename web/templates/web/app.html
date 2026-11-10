@@ -35,7 +35,7 @@
         <small>{{ user|papel }}</small>
         <small class="perfil__email">{{ user.email }}</small>
         <a class="perfil__item" href="{% url 'web:minha-conta' %}"><span class="icon">account_circle</span>Minha conta e meus consulados</a>
-        <a class="perfil__item" href="{% url 'web:solicitar-consulado' %}"><span class="icon">add_business</span>{% if user.is_admin %}Cadastrar consulado{% else %}Solicitar novo consulado{% endif %}</a>
+        <a class="perfil__item" href="{% url 'web:solicitar-consulado' %}"><span class="icon">add_business</span>{% if user.is_admin %}Cadastrar consulado{% else %}Criar novo consulado{% endif %}</a>
         <a class="perfil__item" href="{% url 'web:reportar' %}?de={{ request.get_full_path|urlencode }}"><span class="icon">feedback</span>Reportar problema ou sugestão</a>
         <a class="perfil__item" href="{% url 'web:apoie' %}"><span class="icon">volunteer_activism</span>Apoie o Conexão Coral</a>
         {% if user.is_staff %}<a class="perfil__item" href="{% url 'admin:index' %}"><span class="icon">admin_panel_settings</span>Administração</a>{% endif %}

@@ -1,0 +1,85 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Passageiros · Carona Coral · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">Carona de {{ carona.motorista.nome }}</h1>
+  <p class="apoio">{{ consulado.nome }} · encontro {{ carona.data_hora_encontro|dia_hora }}</p>
+
+  <div class="pills resumo-presencas">
+    <span class="pill"><span class="icon">airline_seat_recline_normal</span>{{ reservas|length }} de {{ carona.vagas }} vagas</span>
+    <span class="pill"><span class="icon">how_to_reg</span>{{ embarcados }} check-in{{ embarcados|pluralize }}</span>
+    {% if expirada %}
+      <span class="pill pill--preto"><span class="icon">timer_off</span>Oferta expirada</span>
+    {% elif vagas_livres > 0 %}
+      <span class="pill">{{ vagas_livres }} vaga{{ vagas_livres|pluralize }} livre{{ vagas_livres|pluralize }} · até {{ carona.expira_em|dia_hora }}</span>
+    {% else %}
+      <span class="pill pill--preto"><span class="icon">block</span>Lotada</span>
+    {% endif %}
+  </div>
+  <p class="card card--padding texto">{{ carona.descricao|linebreaksbr }}</p>
+
+  <div class="secao secao--acao">
+    <h2>Passageiros <span class="pill">{{ reservas|length }}</span></h2>
+    <div class="secao__botoes">
+      <a class="botao-texto" href="{% url 'web:editar-carona' carona.pk %}"><span class="icon">edit</span>Editar</a>
+      <a class="botao botao--compacto" href="{% url 'web:passageiros-carona-pdf' carona.pk %}"><span class="icon">picture_as_pdf</span>Exportar PDF</a>
+    </div>
+  </div>
+
+  {% if reservas %}
+  <ul class="card membros">
+    {% for r in reservas %}
+    <li class="membro{% if r.checkin_em %} membro--ok{% endif %}">
+      <span class="numero" aria-hidden="true">{{ forloop.counter }}</span>
+      <div class="membro__info">
+        <strong>{{ r.usuario.nome }}</strong>
+        <small class="apoio">{% if r.usuario.telefone %}{{ r.usuario.telefone }} · {% endif %}{{ r.usuario.email }} · reservou em {{ r.reservado_em|date:"d/m/Y \à\s H:i" }}</small>
+        {% if r.checkin_em %}<small class="checkin-ok"><span class="icon">check_circle</span>Check-in às {{ r.checkin_em|hora }}{% if r.checkin_por and r.checkin_por_id != carona.motorista_id %} por {{ r.checkin_por.nome }}{% endif %}</small>{% endif %}
+      </div>
+      <div class="membro__acoes">
+        <form method="post" action="{% url 'web:checkin-carona' r.pk %}">
+          {% csrf_token %}
+          {% if r.checkin_em %}
+            <input type="hidden" name="desfazer" value="1">
+            <button type="submit" class="botao-texto"><span class="icon">undo</span>Desfazer</button>
+          {% else %}
+            <button type="submit" class="botao botao--compacto"><span class="icon">how_to_reg</span>Check-in</button>
+          {% endif %}
+        </form>
+        {% if not r.checkin_em %}
+        <form method="post" action="{% url 'web:retirar-passageiro' r.pk %}" data-confirmar="Retirar {{ r.usuario.nome }} da carona? A vaga fica livre para outro membro, e a pessoa só reserva de novo se for readmitida.">
+          {% csrf_token %}
+          <button type="submit" class="botao-texto" title="Liberar a vaga" aria-label="Retirar {{ r.usuario.nome }} da carona"><span class="icon">person_remove</span></button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">directions_car</span>Nenhuma vaga reservada ainda.</div>
+  {% endif %}
+  <p class="apoio pequeno nota-painel">Faça o check-in de cada passageiro no momento do encontro. O PDF traz o horário dos check-ins feitos e um espaço em branco para marcar à mão. Quem for retirado(a) não consegue reservar de novo nesta carona, a não ser que seja readmitido(a).</p>
+
+  {% if retiradas %}
+  <h2 class="secao">Retirados da carona <span class="pill">{{ retiradas|length }}</span></h2>
+  <ul class="card membros">
+    {% for r in retiradas %}
+    <li class="membro">
+      <div class="membro__info">
+        <strong>{{ r.usuario.nome }}</strong>
+        <small class="apoio">{{ r.usuario.email }} · retirado(a) em {{ r.removida_em|date:"d/m/Y \à\s H:i" }}{% if r.removida_por %} por {{ r.removida_por.nome }}{% endif %}</small>
+      </div>
+      <form method="post" action="{% url 'web:readmitir-passageiro' r.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="botao-texto"><span class="icon">undo</span>Readmitir</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

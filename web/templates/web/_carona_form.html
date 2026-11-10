@@ -1,0 +1,8 @@
+{% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+{% include "web/_campo.html" with campo=form.descricao %}
+{% include "web/_campo.html" with campo=form.vagas %}
+<div class="formulario__linha">
+  {% include "web/_campo.html" with campo=form.data_hora_encontro %}
+  {% include "web/_campo.html" with campo=form.expira_em %}
+</div>
+<p class="apoio pequeno"><span class="icon">lock</span> Só os membros do consulado veem a carona e reservam vaga.</p>

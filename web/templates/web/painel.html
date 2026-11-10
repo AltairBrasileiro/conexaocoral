@@ -9,7 +9,7 @@
 
   {% if not consulados %}
     {% include "web/_vazio.html" with icone="store" titulo="Você ainda não administra nenhum consulado" mensagem="Solicite o cadastro do seu bar/sede ou peça ao administrador para vinculá-lo à sua conta." %}
-    <p class="centro"><a class="botao botao--compacto" href="{% url 'web:solicitar-consulado' %}"><span class="icon">add_business</span>Solicitar novo consulado</a></p>
+    <p class="centro"><a class="botao botao--compacto" href="{% url 'web:solicitar-consulado' %}"><span class="icon">add_business</span>Criar novo consulado</a></p>
   {% else %}
 
   {% if consulados|length > 1 %}
@@ -70,7 +70,7 @@
   {% empty %}
     <div class="card linha"><span class="icon">celebration</span>Nenhum evento criado ainda.</div>
   {% endfor %}
-  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita as fotos e acompanha a lista de confirmados dos eventos (com exportação em PDF). As demais configurações são do embaixador.</p>
+  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita as fotos, acompanha a lista de confirmados dos eventos (com exportação em PDF) e oferece caronas aos membros. As demais configurações são do embaixador.</p>
   {% endif %}
 
   {% if pode_gerir %}
@@ -141,6 +141,43 @@
   {% endfor %}
 
   {% endif %}{# pode_gerir #}
+
+  <div class="secao secao--acao">
+    <h2>Carona Coral <span class="pill">{{ caronas|length }}</span></h2>
+    {% if pode_oferecer_carona and consulado.aprovado %}
+    <a class="botao botao--compacto" href="{% url 'web:nova-carona' consulado.pk %}"><span class="icon">add</span>Oferecer carona</a>
+    {% endif %}
+  </div>
+  {% for c in caronas %}
+    <article class="card evento-painel carona-painel">
+      <div class="carona-painel__resumo">
+        {% include "web/_data_bloco.html" with data=c.data_hora_encontro %}
+        <div class="evento-painel__corpo">
+          <h3>Carona de {{ c.motorista.nome }}</h3>
+          <p class="apoio pequeno">{{ c.data_hora_encontro|dia_hora }}</p>
+          <div class="pills">
+            {% if c.data_hora_encontro < agora %}
+              <span class="pill"><span class="icon">history</span>Encontro realizado</span>
+            {% elif c.expira_em <= agora %}
+              <span class="pill pill--preto"><span class="icon">timer_off</span>Oferta expirada</span>
+            {% else %}
+              <span class="pill"><span class="icon">schedule</span>Aberta até {{ c.expira_em|dia_hora_curto }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="evento-painel__total"><strong>{{ c.total_reservas }}<span>/{{ c.vagas }}</span></strong><small>vagas</small></div>
+      </div>
+      {% if pode_gerir or c.motorista_id == user.id %}
+      <div class="evento-painel__acoes">
+        <a class="botao-texto" href="{% url 'web:passageiros-carona' c.pk %}"><span class="icon">how_to_reg</span>Passageiros e check-in</a>
+        <a class="botao-texto" href="{% url 'web:editar-carona' c.pk %}"><span class="icon">edit</span>Editar</a>
+      </div>
+      {% endif %}
+    </article>
+  {% empty %}
+    <div class="card linha"><span class="icon">directions_car</span>Nenhuma carona programada.</div>
+  {% endfor %}
+  <p class="apoio pequeno nota-painel">As caronas aparecem só para os membros do consulado, até o prazo da oferta. Quem oferece faz o check-in dos passageiros e exporta a lista em PDF.</p>
 
   {% endif %}
 </div>

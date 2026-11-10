@@ -200,6 +200,26 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   color: var(--preto);
   border-radius: 12px;
   box-shadow: var(--sombra);
+  z-index: 1002;
+  animation: perfil-abrir .15s ease-out;
+}
+@keyframes perfil-abrir { from { opacity: 0; transform: translateY(-6px); } }
+/* No celular, um fundo escurecido deixa claro que tocar fora fecha o menu.
+   Ele pertence ao <summary>, então o toque nele fecha o menu mesmo sem JS. */
+@media (max-width: 859px) {
+  .perfil[open] summary::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    background: rgba(0, 0, 0, .35);
+    cursor: default;
+    animation: perfil-fundo .15s ease-out;
+  }
+}
+@keyframes perfil-fundo { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .perfil__menu, .perfil[open] summary::after { animation: none; }
 }
 .perfil__menu > strong, .perfil__menu > small { padding: 0 10px; }
 .perfil__menu > small { color: var(--cinza-texto); font-size: 12px; }
@@ -248,6 +268,8 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   flex-shrink: 0;
 }
 .secao--acao h2 { font-size: inherit; margin-right: auto; }
+/* No celular quem quebra linha é o título, nunca o botão ao lado dele. */
+.secao--acao > .botao, .secao--acao > .botao-texto, .secao--acao > .secao__botoes { flex-shrink: 0; white-space: nowrap; }
 
 .voltar {
   display: inline-flex;
@@ -1067,6 +1089,20 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   .membro__cargo { order: 3; width: auto; flex: 1 1 100%; }
 }
 .campo [data-cargo-outro] { margin-top: 8px; }
+
+/* -------------------------------------------------------------- Carona Coral */
+/* Mesmo arranjo do resumo dos eventos no Painel: data | texto | total, ações embaixo. */
+.carona-painel__resumo { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.carona-painel .evento-painel__acoes { flex-wrap: wrap; }
+.secao__botoes { display: flex; align-items: center; gap: 8px; }
+.membro__acoes { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.membro--ok { background: var(--fundo); }
+.checkin-ok { display: inline-flex; align-items: center; gap: 4px; color: var(--vermelho); font-weight: 700; }
+.checkin-ok .icon { font-size: 16px; font-variation-settings: "FILL" 1; }
+.campo__contador { color: var(--cinza-texto); text-align: right; }
+@media (max-width: 640px) {
+  .membro__acoes { margin-left: auto; }
+}
 
 .nova-conta { margin-top: 16px; border: 1.5px solid var(--vermelho); }
 .nova-conta__titulo { display: flex; align-items: center; gap: 8px; font-size: 16px; }

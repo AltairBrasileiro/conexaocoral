@@ -91,5 +91,34 @@
   </details>
   {% endif %}
 
+  {% if reservas_carona or caronas_oferecidas %}
+  <h2 class="secao">Minhas caronas</h2>
+  <ul class="card membros">
+    {% for r in reservas_carona %}
+    <li class="membro">
+      <span class="icon">directions_car</span>
+      <div class="membro__info">
+        <strong>Carona de {{ r.carona.motorista.nome }}</strong>
+        <small class="apoio">{{ r.carona.data_hora_encontro|dia_hora }} · <a href="{% url 'web:consulado' r.carona.consulado.pk %}">{{ r.carona.consulado.nome }}</a>{% if r.carona.motorista.telefone %} · {{ r.carona.motorista.telefone }}{% endif %}</small>
+      </div>
+      <form method="post" action="{% url 'web:cancelar-reserva-carona' r.carona.pk %}" data-confirmar="Cancelar a sua vaga na carona de {{ r.carona.motorista.nome }}?">
+        {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+        <button type="submit" class="botao botao--contorno botao--compacto"><span class="icon">event_busy</span>Cancelar</button>
+      </form>
+    </li>
+    {% endfor %}
+    {% for c in caronas_oferecidas %}
+    <li class="membro">
+      <span class="icon">badge</span>
+      <div class="membro__info">
+        <strong>Você oferece · {{ c.total_reservas }} de {{ c.vagas }} vagas</strong>
+        <small class="apoio">{{ c.data_hora_encontro|dia_hora }} · {{ c.consulado.nome }}</small>
+      </div>
+      <a class="botao botao--contorno botao--compacto" href="{% url 'web:passageiros-carona' c.pk %}"><span class="icon">how_to_reg</span>Passageiros</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
 </div>
 {% endblock %}

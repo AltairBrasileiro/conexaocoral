@@ -29,25 +29,31 @@ from django.views.decorators.http import require_POST
 
 from core.exceptions import RegraNegocioError
 from core.models import (
-    CategoriaAliado, Consulado, Evento, MembroConsulado, Partida, PresencaEvento, Reporte, StatusAprovacao,
-    Usuario,
+    Carona, CategoriaAliado, Consulado, Evento, MembroConsulado, Partida, PresencaEvento, Reporte, ReservaCarona,
+    StatusAprovacao, Usuario,
 )
 from core.repositories import (
-    AliadoRepository, ConsuladoRepository, EventoRepository, FotoConsuladoRepository,
-    MembroConsuladoRepository, SolicitacaoMembroRepository,
+    AliadoRepository, CaronaRepository, ConsuladoRepository, EventoRepository, FotoConsuladoRepository,
+    MembroConsuladoRepository, ReservaCaronaRepository, SolicitacaoMembroRepository,
 )
-from core.services import ConsuladoService, EventoService, ReporteService
+from core.services import CaronaService, ConsuladoService, EventoService, ReporteService
 from web.forms import (
-    CARGOS, OUTRO_CARGO, CargoForm, ConsuladoForm, EntrarForm, EventoForm, FotoConsuladoForm, LegendaFotoForm,
+    CARGOS, OUTRO_CARGO, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EventoForm, FotoConsuladoForm, LegendaFotoForm,
     NovoMembroForm, RejeicaoForm, ReporteForm, SolicitacaoConsuladoForm,
 )
-from web.pdf import lista_de_presenca
+from web.pdf import lista_da_carona, lista_de_presenca
 from web.pix import codigo_pix, qr_svg
 
 # Campo do serviço (EventoService) -> campo do formulário de evento, para mostrar o erro no lugar certo.
 CAMPOS_DO_EVENTO = {
     "data_hora_inicio": "inicio", "data_hora_fim": "inicio", "limite_vagas": "limite_vagas", "fotos": "fotos",
 }
+
+# Campos do CaronaService que não existem no formulário vão para o topo do formulário.
+CAMPOS_DA_CARONA = {"descricao", "vagas", "data_hora_encontro", "expira_em"}
+
+# A carona continua no Painel por um tempo depois do encontro (check-in e PDF).
+CARONA_NO_PAINEL_APOS_ENCONTRO = timedelta(hours=12)
 
 # Membros da equipe exibidos na página pública antes do "Ver todos".
 EQUIPE_VISIVEL = 5
@@ -224,6 +230,14 @@ def consulado_detalhe(request: HttpRequest, pk: int) -> HttpResponse:
         "fotos": list(consulado.fotos.all()),
         "partida": partida,
         "eventos": list(eventos),
+        # Carona Coral: só membros do consulado (e quem a gerencia) veem as caronas.
+        "caronas": _caronas_do_consulado(request.user, consulado, desde=timezone.now()),
+        # Caronas de que quem oferece retirou a reserva deste usuário.
+        "caronas_retiradas": set(
+            ReservaCarona.todas.filter(usuario=request.user, carona__consulado=consulado, removida_em__isnull=False)
+            .values_list("carona_id", flat=True)
+        ),
+        "pode_oferecer_carona": consulado.aprovado and CaronaService().pode_oferecer(request.user, consulado),
         "agora": timezone.now(),
     })
 
@@ -312,6 +326,10 @@ def painel(request: HttpRequest) -> HttpResponse:
     contexto.update(
         consulado=escolhido,
         pode_gerir=pode_gerir,
+        caronas=_caronas_do_consulado(
+            request.user, escolhido, desde=timezone.now() - CARONA_NO_PAINEL_APOS_ENCONTRO,
+        ),
+        pode_oferecer_carona=CaronaService().pode_oferecer(request.user, escolhido),
         meu_cargo=cargos.get(escolhido.id, ""),
         pode_editar_fotos=ConsuladoService().pode_editar_fotos(request.user, escolhido),
         fotos=list(FotoConsuladoRepository().do_consulado(escolhido)),
@@ -644,8 +662,20 @@ def minha_conta(request: HttpRequest) -> HttpResponse:
         .select_related("evento", "evento__consulado")
         .order_by("evento__data_hora_inicio")
     )
+    reservas_carona = list(
+        ReservaCaronaRepository().do_usuario(request.user)
+        .filter(carona__data_hora_encontro__gte=agora)
+        .order_by("carona__data_hora_encontro")
+    )
+    caronas_oferecidas = list(
+        CaronaRepository().visiveis_para(request.user)
+        .filter(motorista=request.user, data_hora_encontro__gte=agora - CARONA_NO_PAINEL_APOS_ENCONTRO)
+        .order_by("data_hora_encontro")
+    )
     return render(request, "web/minha_conta.html", {
         "aba": "conta",
+        "reservas_carona": reservas_carona,
+        "caronas_oferecidas": caronas_oferecidas,
         "filiacoes": filiacoes,
         "pedidos": pedidos,
         "eventos_proximos": [p for p in presencas if p.evento.data_hora_fim >= agora],
@@ -809,6 +839,161 @@ def presencas_evento_pdf(request: HttpRequest, pk: int) -> HttpResponse:
     nome = slugify(f"lista-de-presenca-{evento.titulo}-{timezone.localtime(evento.data_hora_inicio):%d-%m-%Y}")
     resposta["Content-Disposition"] = f'attachment; filename="{nome}.pdf"'
     return resposta
+
+
+# ----------------------------------------------------------------- Carona Coral
+def _caronas_do_consulado(usuario: Usuario, consulado: Consulado, *, desde) -> list[Carona]:
+    return list(
+        CaronaRepository().visiveis_para(usuario)
+        .filter(consulado=consulado, data_hora_encontro__gte=desde)
+        .order_by("data_hora_encontro")
+    )
+
+
+def _carona_gerenciavel(usuario: Usuario, pk: int) -> Carona:
+    """Quem oferece a carona, o embaixador do consulado ou o admin."""
+    carona = get_object_or_404(CaronaRepository().get_queryset(), pk=pk)
+    if not CaronaService.pode_gerir(usuario, carona):
+        raise PermissionDenied("Apenas quem oferece a carona e o embaixador do consulado podem gerenciá-la.")
+    return carona
+
+
+def _reserva_gerenciavel(usuario: Usuario, pk: int) -> ReservaCarona:
+    reserva = get_object_or_404(ReservaCaronaRepository().get_queryset(), pk=pk)
+    _carona_gerenciavel(usuario, reserva.carona_id)
+    return reserva
+
+
+def _passageiros(carona: Carona) -> list[ReservaCarona]:
+    return list(ReservaCaronaRepository().da_carona(carona).order_by(Lower("usuario__nome")))
+
+
+def _erro_no_form_da_carona(form: CaronaForm, erro: RegraNegocioError) -> None:
+    form.add_error(erro.campo if erro.campo in CAMPOS_DA_CARONA else None, erro.mensagem)
+
+
+@login_required
+def nova_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    consulado = get_object_or_404(ConsuladoRepository().visiveis_para(request.user), pk=pk)
+    servico = CaronaService()
+    if not servico.pode_oferecer(request.user, consulado):
+        raise PermissionDenied("Apenas o embaixador e os membros com cargo no consulado podem oferecer caronas.")
+    form = CaronaForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            servico.criar_carona(request.user, consulado, **form.cleaned_data)
+        except RegraNegocioError as erro:
+            _erro_no_form_da_carona(form, erro)
+        else:
+            messages.success(request, "Carona publicada para os membros do consulado.")
+            return redirect(_url_painel(consulado))
+    return render(request, "web/nova_carona.html", {"aba": "painel", "consulado": consulado, "form": form})
+
+
+@login_required
+def editar_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    carona = _carona_gerenciavel(request.user, pk)
+    form = CaronaForm.para_carona(carona, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            CaronaService().atualizar_carona(carona, request.user, **form.cleaned_data)
+        except RegraNegocioError as erro:
+            _erro_no_form_da_carona(form, erro)
+        else:
+            messages.success(request, "Carona atualizada.")
+            return redirect(_url_painel(carona.consulado))
+    return render(request, "web/editar_carona.html", {
+        "aba": "painel", "consulado": carona.consulado, "carona": carona, "form": form,
+        "total_reservas": carona.reservas.count(),
+    })
+
+
+@login_required
+@require_POST
+def excluir_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    carona = _carona_gerenciavel(request.user, pk)
+    consulado = carona.consulado
+    _executar(request, lambda: CaronaService().excluir_carona(carona, request.user), "Carona excluída.")
+    return redirect(_url_painel(consulado))
+
+
+@login_required
+def passageiros_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    carona = _carona_gerenciavel(request.user, pk)
+    reservas = _passageiros(carona)
+    return render(request, "web/passageiros_carona.html", {
+        "aba": "painel",
+        "carona": carona,
+        "consulado": carona.consulado,
+        "reservas": reservas,
+        "retiradas": list(ReservaCaronaRepository().retiradas_da_carona(carona).order_by("-removida_em")),
+        "vagas_livres": carona.vagas - len(reservas),
+        "embarcados": sum(1 for r in reservas if r.checkin_em),
+        "expirada": CaronaService.expirada(carona),
+    })
+
+
+@login_required
+def passageiros_carona_pdf(request: HttpRequest, pk: int) -> HttpResponse:
+    carona = _carona_gerenciavel(request.user, pk)
+    resposta = HttpResponse(lista_da_carona(carona, _passageiros(carona)), content_type="application/pdf")
+    nome = slugify(f"carona-coral-{carona.motorista.nome}-{timezone.localtime(carona.data_hora_encontro):%d-%m-%Y}")
+    resposta["Content-Disposition"] = f'attachment; filename="{nome}.pdf"'
+    return resposta
+
+
+@login_required
+@require_POST
+def checkin_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    reserva = _reserva_gerenciavel(request.user, pk)
+    servico = CaronaService()
+    if request.POST.get("desfazer"):
+        _executar(request, lambda: servico.desfazer_checkin(request.user, reserva),
+                  f"Check-in de {reserva.usuario.nome} desfeito.")
+    else:
+        _executar(request, lambda: servico.registrar_checkin(request.user, reserva),
+                  f"Check-in de {reserva.usuario.nome} registrado.")
+    return redirect("web:passageiros-carona", pk=reserva.carona_id)
+
+
+@login_required
+@require_POST
+def retirar_passageiro(request: HttpRequest, pk: int) -> HttpResponse:
+    reserva = _reserva_gerenciavel(request.user, pk)
+    nome, carona_id = reserva.usuario.nome, reserva.carona_id
+    _executar(request, lambda: CaronaService().retirar_passageiro(request.user, reserva),
+              f"{nome} foi retirado(a) da carona e a vaga ficou livre.")
+    return redirect("web:passageiros-carona", pk=carona_id)
+
+
+@login_required
+@require_POST
+def readmitir_passageiro(request: HttpRequest, pk: int) -> HttpResponse:
+    reserva = ReservaCaronaRepository().obter_retirada(pk)
+    if reserva is None:
+        raise Http404("Reserva retirada não encontrada.")
+    _carona_gerenciavel(request.user, reserva.carona_id)
+    _executar(request, lambda: CaronaService().readmitir_passageiro(request.user, reserva),
+              f"{reserva.usuario.nome} voltou para a carona.")
+    return redirect("web:passageiros-carona", pk=reserva.carona_id)
+
+
+@login_required
+@require_POST
+def reservar_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    carona = get_object_or_404(CaronaRepository().visiveis_para(request.user), pk=pk)
+    _executar(request, lambda: CaronaService().reservar(request.user, carona),
+              f"Vaga reservada na carona de {carona.motorista.nome}.")
+    return _voltar(request, reverse("web:consulado", args=[carona.consulado_id]))
+
+
+@login_required
+@require_POST
+def cancelar_reserva_carona(request: HttpRequest, pk: int) -> HttpResponse:
+    reserva = get_object_or_404(ReservaCaronaRepository().do_usuario(request.user), carona_id=pk)
+    _executar(request, lambda: CaronaService().cancelar_reserva(request.user, reserva),
+              f"Reserva na carona de {reserva.carona.motorista.nome} cancelada.")
+    return _voltar(request, reverse("web:consulado", args=[reserva.carona.consulado_id]))
 
 
 # ------------------------------------------------------- problemas e sugestões

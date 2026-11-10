@@ -71,6 +71,13 @@ def dia_hora(valor: datetime) -> str:
 
 
 @register.filter
+def dia_hora_curto(valor: datetime) -> str:
+    """Ex.: "26/09 às 17h" (para caber em etiquetas no celular)."""
+    d = timezone.localtime(valor)
+    return f"{d:%d/%m} às {hora(d)}"
+
+
+@register.filter
 def dia(valor: datetime) -> str:
     return f"{timezone.localtime(valor):%d}"
 

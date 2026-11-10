@@ -9,6 +9,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 
 from core.models import Consulado, Reporte
+from core.models.carona import MAXIMO_CARACTERES_CARONA, MAXIMO_VAGAS_CARONA
 from core.validators import TAMANHO_MAXIMO_IMAGEM_MB, validar_extensao_imagem, validar_tamanho_imagem
 
 
@@ -304,3 +305,58 @@ class EventoForm(forms.Form):
             "limite_vagas": self.cleaned_data.get("limite_vagas"),
         }
         return dados
+
+
+def _amanha_as(hora: int):
+    return lambda: (timezone.localtime() + timedelta(days=1)).replace(hour=hora, minute=0, second=0, microsecond=0)
+
+
+def _campo_data_hora(rotulo: str, inicial, ajuda: str = "") -> forms.DateTimeField:
+    return forms.DateTimeField(
+        label=rotulo,
+        initial=inicial,
+        help_text=ajuda,
+        input_formats=["%Y-%m-%dT%H:%M"],
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+    )
+
+
+class CaronaForm(forms.Form):
+    """Oferta da Carona Coral (as regras ficam no ``CaronaService``)."""
+
+    descricao = forms.CharField(
+        label="Detalhes da carona",
+        max_length=MAXIMO_CARACTERES_CARONA,
+        help_text=f"Até {MAXIMO_CARACTERES_CARONA} caracteres.",
+        widget=forms.Textarea(attrs={
+            "rows": 5,
+            "data-contador": "",
+            "placeholder": "Ponto de encontro, destino, veículo, rateio do combustível, contato…",
+        }),
+        error_messages={"required": "Escreva os detalhes da carona."},
+    )
+    vagas = forms.IntegerField(
+        label="Vagas oferecidas",
+        min_value=1,
+        max_value=MAXIMO_VAGAS_CARONA,
+        initial=3,
+        widget=forms.NumberInput(attrs={"inputmode": "numeric"}),
+        error_messages={
+            "min_value": "Ofereça pelo menos 1 vaga.",
+            "max_value": f"Ofereça no máximo {MAXIMO_VAGAS_CARONA} vagas.",
+        },
+    )
+    data_hora_encontro = _campo_data_hora("Data e hora do encontro", _amanha_as(18))
+    expira_em = _campo_data_hora(
+        "Oferta válida até", _amanha_as(16),
+        "Depois disso a carona não aceita reservas e some para os membros. Precisa ser até o horário do encontro.",
+    )
+
+    @classmethod
+    def para_carona(cls, carona, dados=None) -> "CaronaForm":
+        return cls(dados, initial={
+            "descricao": carona.descricao,
+            "vagas": carona.vagas,
+            "data_hora_encontro": timezone.localtime(carona.data_hora_encontro),
+            "expira_em": timezone.localtime(carona.expira_em),
+        })

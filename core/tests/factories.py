@@ -7,7 +7,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from core.models import Consulado, Evento, MandoCampo, Partida, StatusAprovacao, TipoUsuario, Usuario
+from core.models import Carona, Consulado, Evento, MandoCampo, Partida, StatusAprovacao, TipoUsuario, Usuario
 
 _seq = count(1)
 
@@ -58,3 +58,15 @@ def criar_evento(consulado: Consulado, **extra: Any) -> Evento:
     }
     dados.update(extra)
     return Evento.objects.create(consulado=consulado, **dados)
+
+
+def criar_carona(consulado: Consulado, motorista: Usuario | None = None, **extra: Any) -> Carona:
+    encontro = timezone.now() + timedelta(days=2)
+    dados = {
+        "descricao": "Saída do consulado rumo ao Arruda. Rateio do combustível.",
+        "vagas": 3,
+        "data_hora_encontro": encontro,
+        "expira_em": encontro - timedelta(hours=2),
+    }
+    dados.update(extra)
+    return Carona.objects.create(consulado=consulado, motorista=motorista or consulado.responsavel, **dados)

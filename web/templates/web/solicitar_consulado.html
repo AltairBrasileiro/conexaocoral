@@ -6,7 +6,7 @@
 {% block conteudo %}
 <div class="pagina pagina--formulario">
   <a class="voltar" href="{% url 'web:consulados' %}"><span class="icon">arrow_back</span>Consulados</a>
-  <h1 class="titulo-pagina">{% if user.is_admin %}Cadastrar consulado{% else %}Solicitar novo consulado{% endif %}</h1>
+  <h1 class="titulo-pagina">{% if user.is_admin %}Cadastrar consulado{% else %}Criar novo consulado{% endif %}</h1>
   <p class="apoio">
     {% if user.is_admin %}Cadastros feitos pela administração já entram publicados no mapa.
     {% else %}Leve o Santa Cruz para a sua cidade. A administração analisa o pedido e, se aprovado, você vira o embaixador do consulado.{% endif %}

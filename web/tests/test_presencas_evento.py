@@ -155,6 +155,15 @@ class ListaDeConfirmadosTests(TestCase):
         self.assertIn('filename="lista-de-presenca-resenha-pre-jogo-', resposta["Content-Disposition"])
         self.assertTrue(resposta.content.startswith(b"%PDF"))
 
+    def test_pdf_aceita_caracteres_especiais(self):
+        # Sem escapar, o ReportLab lê "<b>" como marcação: o PDF quebra (erro 500) ou o texto some.
+        Evento.objects.filter(pk=self.evento.pk).update(titulo="Resenha <b>pré-jogo & churrasco")
+        PresencaEvento.objects.create(usuario=criar_usuario(nome="Ana <b>Silva & Filhos"), evento=self.evento)
+        self.client.force_login(self.embaixador)
+        resposta = self.client.get(reverse("web:presencas-evento-pdf", args=[self.evento.pk]))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(resposta.content.startswith(b"%PDF"))
+
     def test_pdf_exige_permissao(self):
         self.client.force_login(criar_usuario())
         self.assertEqual(self.client.get(reverse("web:presencas-evento-pdf", args=[self.evento.pk])).status_code, 403)

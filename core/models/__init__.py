@@ -5,6 +5,7 @@ Todos os models são reexportados aqui para que o Django os descubra
 (``core.models``) e para permitir ``from core.models import Consulado``.
 """
 from core.models.aliado import Aliado
+from core.models.carona import Carona, ReservaCarona
 from core.models.choices import CategoriaAliado, MandoCampo, StatusAprovacao, TipoUsuario
 from core.models.consulado import Consulado, FotoConsulado, MembroConsulado, SolicitacaoMembro
 from core.models.evento import Evento, FotoEvento, PresencaEvento
@@ -15,6 +16,7 @@ from core.models.usuario import Usuario
 
 __all__ = [
     "Aliado",
+    "Carona",
     "CategoriaAliado",
     "Consulado",
     "Evento",
@@ -25,6 +27,7 @@ __all__ = [
     "Partida",
     "PresencaEvento",
     "Reporte",
+    "ReservaCarona",
     "SolicitacaoMembro",
     "StatusAprovacao",
     "TipoUsuario",

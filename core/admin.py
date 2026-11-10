@@ -5,6 +5,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from core.models import (
     Aliado,
+    Carona,
     Consulado,
     Evento,
     FotoConsulado,
@@ -12,6 +13,7 @@ from core.models import (
     Partida,
     PresencaEvento,
     Reporte,
+    ReservaCarona,
     SolicitacaoMembro,
     StatusAprovacao,
     TokenWhitelist,
@@ -131,6 +133,23 @@ class EventoAdmin(admin.ModelAdmin):
 class PresencaEventoAdmin(admin.ModelAdmin):
     list_display = ("usuario", "evento", "data_confirmacao")
     raw_id_fields = ("usuario", "evento")
+
+
+class ReservaCaronaInline(admin.TabularInline):
+    model = ReservaCarona
+    extra = 0
+    raw_id_fields = ("usuario", "checkin_por")
+    readonly_fields = ("reservado_em",)
+
+
+@admin.register(Carona)
+class CaronaAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "consulado", "motorista", "data_hora_encontro", "expira_em", "vagas")
+    list_filter = ("consulado",)
+    search_fields = ("descricao", "motorista__nome", "consulado__nome")
+    raw_id_fields = ("consulado", "motorista")
+    date_hierarchy = "data_hora_encontro"
+    inlines = (ReservaCaronaInline,)
 
 
 @admin.register(Aliado)

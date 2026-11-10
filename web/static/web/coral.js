@@ -12,6 +12,42 @@
     setTimeout(function () { if (aviso.isConnected) fecharAviso(aviso); }, 6000);
   });
 
+  // ------------------------------------------------------- Menu do perfil
+  // O <details> nativo só fecha clicando na bolinha; aqui ele também fecha ao
+  // tocar fora, com Esc, ao sair pelo Tab e ao voltar à página pelo histórico.
+  document.querySelectorAll("details.perfil").forEach(function (menu) {
+    var gatilho = menu.querySelector("summary");
+    function fechar(devolverFoco) {
+      if (!menu.open) return;
+      menu.open = false;
+      if (devolverFoco) gatilho.focus();
+    }
+    // pointerdown em vez de click: no iOS, toques em áreas "não clicáveis" não geram click no document.
+    document.addEventListener("pointerdown", function (e) {
+      if (!menu.contains(e.target)) fechar(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") fechar(true);
+    });
+    menu.addEventListener("focusout", function (e) {
+      if (e.relatedTarget && !menu.contains(e.relatedTarget)) fechar(false);
+    });
+    window.addEventListener("pageshow", function (e) {
+      if (e.persisted) fechar(false);
+    });
+  });
+
+  // ----------------------------------------- Contador de caracteres (ex.: carona)
+  document.querySelectorAll("textarea[data-contador][maxlength]").forEach(function (campo) {
+    var limite = Number(campo.getAttribute("maxlength"));
+    var contador = document.createElement("small");
+    contador.className = "campo__contador";
+    campo.insertAdjacentElement("afterend", contador);
+    function atualizar() { contador.textContent = campo.value.length + "/" + limite; }
+    campo.addEventListener("input", atualizar);
+    atualizar();
+  });
+
   // ------------------------------------------------------------ Mostrar senha
   document.querySelectorAll("[data-mostrar-senha]").forEach(function (botao) {
     var campo = document.getElementById(botao.dataset.mostrarSenha);

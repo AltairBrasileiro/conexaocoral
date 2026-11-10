@@ -28,6 +28,12 @@ Rotas da interface web (templates Django + login por sessão).
     apoie/                                  contribuição financeira via Pix
     painel/consulados/{id}/fotos/           fotos: enviar (embaixador ou membro com cargo)
     painel/fotos/{id}/legenda/|capa/|remover/  POST editar legenda, definir capa, remover
+    painel/consulados/{id}/caronas/nova/    Carona Coral: oferecer (admin, embaixador, membro com cargo)
+    painel/caronas/{id}/editar/ | excluir/  edição e exclusão (quem oferece, embaixador, admin)
+    painel/caronas/{id}/passageiros/        passageiros e check-in
+    painel/caronas/{id}/passageiros.pdf     a mesma lista em PDF
+    painel/reservas-carona/{id}/checkin/ | retirar/ | readmitir/  POST check-in (ou desfazer) / retirar / readmitir
+    caronas/{id}/reservar/ | cancelar/      POST membro reserva / cancela a própria vaga
 """
 from django.urls import path
 
@@ -73,4 +79,14 @@ urlpatterns = [
     path("painel/fotos/<int:pk>/legenda/", views.legenda_foto, name="legenda-foto"),
     path("painel/fotos/<int:pk>/capa/", views.capa_foto, name="capa-foto"),
     path("painel/fotos/<int:pk>/remover/", views.remover_foto, name="remover-foto"),
+    path("painel/consulados/<int:pk>/caronas/nova/", views.nova_carona, name="nova-carona"),
+    path("painel/caronas/<int:pk>/editar/", views.editar_carona, name="editar-carona"),
+    path("painel/caronas/<int:pk>/excluir/", views.excluir_carona, name="excluir-carona"),
+    path("painel/caronas/<int:pk>/passageiros/", views.passageiros_carona, name="passageiros-carona"),
+    path("painel/caronas/<int:pk>/passageiros.pdf", views.passageiros_carona_pdf, name="passageiros-carona-pdf"),
+    path("painel/reservas-carona/<int:pk>/checkin/", views.checkin_carona, name="checkin-carona"),
+    path("painel/reservas-carona/<int:pk>/retirar/", views.retirar_passageiro, name="retirar-passageiro"),
+    path("painel/reservas-carona/<int:pk>/readmitir/", views.readmitir_passageiro, name="readmitir-passageiro"),
+    path("caronas/<int:pk>/reservar/", views.reservar_carona, name="reservar-carona"),
+    path("caronas/<int:pk>/cancelar/", views.cancelar_reserva_carona, name="cancelar-reserva-carona"),
 ]

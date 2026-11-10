@@ -204,5 +204,56 @@
   {% empty %}
     <div class="card linha"><span class="icon">celebration</span>Nenhum encontro programado.</div>
   {% endfor %}
+
+  {% if consulado.eh_membro or pode_oferecer_carona or caronas %}
+  {% url 'web:consulado' consulado.pk as aqui %}
+  <div class="secao secao--acao">
+    <h2>Carona Coral <span class="pill">{{ caronas|length }}</span></h2>
+    {% if pode_oferecer_carona %}<a class="botao-texto" href="{% url 'web:nova-carona' consulado.pk %}" aria-label="Oferecer carona"><span class="icon">add</span>Oferecer</a>{% endif %}
+  </div>
+  {% for c in caronas %}
+    <article class="card evento">
+      {% include "web/_data_bloco.html" with data=c.data_hora_encontro %}
+      <div class="evento__corpo">
+        <h3>Carona de {{ c.motorista.nome }}</h3>
+        <p class="apoio">{{ c.data_hora_encontro|dia_hora }}</p>
+        <p class="texto">{{ c.descricao|linebreaksbr }}</p>
+        <div class="pills">
+          <span class="pill"><span class="icon">airline_seat_recline_normal</span>{{ c.total_reservas }} de {{ c.vagas }} vagas</span>
+          {% if c.expira_em > agora %}<span class="pill"><span class="icon">schedule</span>Reservas até {{ c.expira_em|dia_hora_curto }}</span>{% endif %}
+        </div>
+        <div class="evento__acao">
+          {% if c.motorista_id == user.id or pode_gerenciar %}
+            <a class="botao botao--contorno botao--compacto" href="{% url 'web:passageiros-carona' c.pk %}"><span class="icon">how_to_reg</span>Passageiros e check-in</a>
+          {% elif c.reservado %}
+            <div class="presenca-ok">
+              <span class="pill pill--vermelho"><span class="icon">check</span>Vaga reservada</span>
+              {% if c.motorista.telefone %}<span class="apoio pequeno"><span class="icon">call</span>{{ c.motorista.telefone }}</span>{% endif %}
+              <form method="post" action="{% url 'web:cancelar-reserva-carona' c.pk %}" data-confirmar="Cancelar a sua vaga na carona de {{ c.motorista.nome }}? A vaga fica livre para outro membro.">
+                {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+                <button type="submit" class="botao botao--contorno botao--compacto"><span class="icon">event_busy</span>Cancelar reserva</button>
+              </form>
+            </div>
+          {% elif c.pk in caronas_retiradas %}
+            <span class="pill pill--preto"><span class="icon">block</span>Sua reserva foi retirada por quem oferece a carona</span>
+          {% elif c.expira_em <= agora %}
+            <span class="pill pill--preto"><span class="icon">timer_off</span>Oferta expirada</span>
+          {% elif c.total_reservas >= c.vagas %}
+            <span class="pill pill--preto"><span class="icon">block</span>Vagas esgotadas</span>
+          {% elif not consulado.eh_membro %}
+            <span class="apoio pequeno"><span class="icon">lock</span>Somente membros reservam vaga</span>
+          {% else %}
+            <form method="post" action="{% url 'web:reservar-carona' c.pk %}">
+              {% csrf_token %}<input type="hidden" name="proximo" value="{{ aqui }}">
+              <button type="submit" class="botao botao--compacto"><span class="icon">directions_car</span>Reservar vaga</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+  {% empty %}
+    <div class="card linha"><span class="icon">directions_car</span>Nenhuma carona disponível no momento.</div>
+  {% endfor %}
+  {% endif %}
 </div>
 {% endblock %}
