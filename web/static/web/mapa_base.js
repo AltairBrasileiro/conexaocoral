@@ -8,7 +8,7 @@
  * O desenho é do MapLibre, integrado ao Leaflet pelo plugin maplibre-gl-leaflet,
  * então marcadores e cliques continuam sendo do Leaflet.
  *
- * Sem WebGL (navegador antigo ou aceleração desligada), volta aos tiles do OSM.
+ * Sem WebGL (navegador antigo ou aceleração desligada), usa imagens prontas do CARTO.
  */
 window.CoralMapa = (function () {
   "use strict";
@@ -18,8 +18,9 @@ window.CoralMapa = (function () {
     '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ' +
     '&copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ' +
     '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores do OpenStreetMap</a>';
-  var ATRIBUICAO_OSM =
-    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores do OpenStreetMap</a>';
+  var ATRIBUICAO_RASTER =
+    '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">colaboradores do OpenStreetMap</a> ' +
+    '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
   var NOME_EM_PORTUGUES = ["coalesce", ["get", "name:pt"], ["get", "name"]];
 
   function temWebGL() {
@@ -71,19 +72,21 @@ window.CoralMapa = (function () {
     });
   }
 
-  function tilesOSM(mapa) {
-    // A política de uso do OSM exige o Referer; o Django envia "Referrer-Policy:
-    // same-origin", que o omite em outros domínios. Os tiles mandam só a origem do site.
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  // Reserva sem WebGL: imagens prontas do CARTO "Voyager", de traço claro parecido
+  // com o mapa vetorial (em vez do visual carregado do OSM padrão). Os rótulos vêm
+  // no idioma local, o que no Brasil já é português.
+  function tilesRaster(mapa) {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
+      subdomains: "abcd",
       referrerPolicy: "strict-origin-when-cross-origin",
-      attribution: ATRIBUICAO_OSM,
+      attribution: ATRIBUICAO_RASTER,
     }).addTo(mapa);
   }
 
   function camadaBase(mapa) {
     if (!temWebGL() || !L.maplibreGL || !window.maplibregl) {
-      tilesOSM(mapa);
+      tilesRaster(mapa);
       return;
     }
     fetch(ESTILO)
@@ -92,7 +95,7 @@ window.CoralMapa = (function () {
       .then(function (estilo) {
         L.maplibreGL({ style: estilo, attribution: ATRIBUICAO_VETORIAL }).addTo(mapa);
       })
-      .catch(function () { tilesOSM(mapa); });
+      .catch(function () { tilesRaster(mapa); });
   }
 
   return { camadaBase: camadaBase };

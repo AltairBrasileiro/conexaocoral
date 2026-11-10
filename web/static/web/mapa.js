@@ -155,7 +155,7 @@
   });
 
   // Abertura do mapa: quem já é membro vê primeiro os próprios consulados
-  // (com um só, o resumo dele já abre); os demais veem todos os consulados.
+  // (com um só, o resumo dele já abre); os demais abrem perto de onde estão.
   function abrirNosMeusConsulados() {
     var meus = consulados.filter(function (c) { return c.eh_membro; });
     if (!meus.length) return false;
@@ -169,6 +169,27 @@
     return true;
   }
 
+  // Quem não é membro abre de perto (zoom de bairro), como os membros: onde a
+  // pessoa está, se ela permitir a localização; senão, em Recife.
+  // O navegador só oferece a localização em HTTPS (ou localhost).
+  var ZOOM_PROXIMO = 13;
+  var mexeu = false; // não "puxa" o mapa se a pessoa já começou a navegar
+  mapa.on("dragstart", function () { mexeu = true; });
+  busca.addEventListener("input", function () { mexeu = true; });
+  folha.addEventListener("focusin", function () { mexeu = true; });
+
+  function abrirPertoDoUsuario() {
+    mapa.setView(CENTRO_INICIAL, ZOOM_PROXIMO);
+    if (!navigator.geolocation || !window.isSecureContext) return;
+    navigator.geolocation.getCurrentPosition(function (posicao) {
+      var aqui = [posicao.coords.latitude, posicao.coords.longitude];
+      L.circleMarker(aqui, {
+        radius: 8, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1,
+      }).bindTooltip("Você está aqui").addTo(mapa);
+      if (!mexeu && folha.hidden) mapa.setView(aqui, ZOOM_PROXIMO);
+    }, function () { /* negou ou falhou: continua em Recife */ }, { timeout: 10000, maximumAge: 600000 });
+  }
+
   filtrar();
-  if (!abrirNosMeusConsulados()) enquadrar();
+  if (!abrirNosMeusConsulados()) abrirPertoDoUsuario();
 })();
