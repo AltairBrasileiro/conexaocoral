@@ -109,10 +109,18 @@ def tem_painel(usuario: Usuario) -> bool:
     return MembroConsuladoRepository().consulados_com_cargo(usuario).exists()
 
 
+CONSULADO_SEM_APROVACAO = (
+    "Este consulado ainda não foi aprovado pela administração. "
+    "Até a aprovação, não é possível editar seus dados nem vincular membros."
+)
+
+
 def _consulado_administrado(usuario: Usuario, pk: int) -> Consulado:
     consulado = get_object_or_404(Consulado, pk=pk)
     if not (usuario.is_admin or consulado.responsavel_id == usuario.id):
         raise PermissionDenied("Você só pode alterar consulados que administra.")
+    if not (usuario.is_admin or consulado.aprovado):
+        raise PermissionDenied(CONSULADO_SEM_APROVACAO)
     return consulado
 
 
@@ -161,7 +169,11 @@ class SairView(auth_views.LogoutView):
 def consulados(request: HttpRequest) -> HttpResponse:
     """Módulo 1 — Mapa interativo com os consulados."""
     servico = ConsuladoService()
-    lista = ConsuladoRepository().visiveis_para(request.user).order_by("nome")
+    # Só os aprovados vão para o mapa: os demais são solicitações em análise.
+    lista = (
+        ConsuladoRepository().visiveis_para(request.user)
+        .filter(status_aprovacao=StatusAprovacao.APROVADO).order_by("nome")
+    )
     dados = []
     for c in lista:
         fotos = list(c.fotos.all())
@@ -322,6 +334,11 @@ def painel(request: HttpRequest) -> HttpResponse:
         return render(request, "web/painel.html", contexto)
 
     escolhido = next((c for c in meus if str(c.id) == request.GET.get("consulado")), meus[0])
+    if not (escolhido.aprovado or request.user.is_admin):
+        # Solicitação ainda não aprovada: quem pediu só acompanha, sem editar nem vincular membros.
+        contexto.update(consulado=escolhido, sem_aprovacao=True)
+        return render(request, "web/painel.html", contexto)
+
     pode_gerir = request.user.is_admin or escolhido.responsavel_id == request.user.id
     contexto.update(
         consulado=escolhido,
@@ -690,6 +707,8 @@ def _consulado_com_fotos_editaveis(usuario: Usuario, pk: int) -> Consulado:
     consulado = get_object_or_404(ConsuladoRepository().visiveis_para(usuario), pk=pk)
     if not ConsuladoService().pode_editar_fotos(usuario, consulado):
         raise PermissionDenied("Apenas o embaixador e os membros com cargo no consulado podem editar as fotos.")
+    if not consulado.aprovado:
+        raise PermissionDenied(CONSULADO_SEM_APROVACAO)
     return consulado
 
 

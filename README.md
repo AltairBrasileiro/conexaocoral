@@ -80,6 +80,8 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   consulado", com os requisitos do clube em `CONEXAO_CORAL["REQUISITOS_CONSULADO"]`, foto do local
   opcional e grupo do WhatsApp obrigatório); uma solicitação em análise por vez. O admin aceita ou
   recusa (com motivo) na aba "Solicitações" do painel; ao aceitar, o torcedor vira embaixador.
+  Até a aprovação, o consulado só aparece para quem o solicitou (e para o admin), fica fora do mapa
+  e não pode ser editado nem receber membros.
 - **Entrar e sair de consulados**: o torcedor pede para ser membro e o embaixador aprova ou recusa
   em "Gerenciar membros"; o membro sai quando quiser (o embaixador não sai do próprio consulado).
   Tudo isso também fica em "Minha conta", junto com os eventos com presença confirmada.

@@ -61,6 +61,10 @@ class ConsuladoViewSet(PermissaoPorAcaoMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer: ConsuladoSerializer) -> None:
         serializer.instance = self.service.criar_consulado(self.request.user, **serializer.validated_data)
 
+    def perform_update(self, serializer: ConsuladoSerializer) -> None:
+        self.service.exigir_edicao_permitida(self.request.user, serializer.instance)
+        serializer.save()
+
     @action(detail=True, methods=["post"])
     def aprovar(self, request: Request, pk: str | None = None) -> Response:
         consulado = self.service.aprovar_solicitacao(self.get_object(), moderador=request.user)

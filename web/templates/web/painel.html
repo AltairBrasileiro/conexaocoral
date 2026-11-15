@@ -38,18 +38,36 @@
   <div class="pills">
     {% if consulado.aprovado %}
       <span class="pill"><span class="icon">verified</span>Aprovado</span>
+    {% elif consulado.status_aprovacao == "REJEITADO" %}
+      <span class="pill pill--preto"><span class="icon">block</span>Solicitação recusada</span>
     {% else %}
       <span class="pill"><span class="icon">hourglass_top</span>Aguardando aprovação</span>
     {% endif %}
+    {% if not sem_aprovacao %}
     <span class="pill"><span class="icon">groups</span>{{ consulado.total_membros|membros }}</span>
     <a class="pill pill--link" href="{% url 'web:consulado' consulado.pk %}"><span class="icon">open_in_new</span>Ver página pública</a>
-    {% if pode_gerir %}
+    {% endif %}
+    {% if sem_aprovacao %}
+    {% elif pode_gerir %}
     <a class="pill pill--link" href="{% url 'web:membros' consulado.pk %}"><span class="icon">manage_accounts</span>Gerenciar membros</a>
     {% if pedidos_entrada %}<a class="pill pill--vermelho pill--link" href="{% url 'web:membros' consulado.pk %}"><span class="icon">person_add</span>{{ pedidos_entrada }} pedido{{ pedidos_entrada|pluralize }} para entrar</a>{% endif %}
     {% else %}
     <span class="pill pill--preto"><span class="icon">badge</span>{{ meu_cargo }}</span>
     {% endif %}
   </div>
+
+  {% if sem_aprovacao %}
+  <div class="card linha"><span class="icon">{% if consulado.status_aprovacao == "REJEITADO" %}block{% else %}hourglass_top{% endif %}</span><span>
+    {% if consulado.status_aprovacao == "REJEITADO" %}A administração recusou esta solicitação{% if consulado.motivo_rejeicao %}: {{ consulado.motivo_rejeicao }}{% else %}.{% endif %}
+    {% else %}Sua solicitação está em análise pela administração. Até a aprovação, o consulado não aparece no mapa nem para os outros torcedores, e não é possível editar os dados ou vincular membros.{% endif %}
+  </span></div>
+  <h2 class="secao">Dados enviados</h2>
+  <dl class="card dados">
+    <div><dt><span class="icon">location_on</span>Endereço</dt><dd>{{ consulado.endereco }}</dd></div>
+    <div><dt><span class="icon">chat</span>Grupo do WhatsApp</dt><dd>{{ consulado.link_whatsapp|default:"Não informado" }}</dd></div>
+    <div><dt><span class="icon">info</span>Descrição / funcionamento</dt><dd>{{ consulado.descricao|default:"Não informada"|linebreaksbr }}</dd></div>
+  </dl>
+  {% else %}
 
   {% if pode_editar_fotos %}
   <div class="secao secao--acao">
@@ -190,6 +208,8 @@
     <div class="card linha"><span class="icon">directions_car</span>Nenhuma carona programada.</div>
   {% endfor %}
   <p class="apoio pequeno nota-painel">As caronas aparecem só para os membros do consulado, até o prazo da oferta. Quem oferece faz o check-in dos passageiros e exporta a lista em PDF.</p>
+
+  {% endif %}{# sem_aprovacao #}
 
   {% endif %}
 </div>

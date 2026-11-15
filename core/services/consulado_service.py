@@ -96,6 +96,20 @@ class ConsuladoService:
         AprovacaoService().rejeitar(consulado, moderador=moderador)
         return self.repositorio.atualizar(consulado, motivo_rejeicao=motivo.strip())
 
+    @staticmethod
+    def exigir_aprovado(consulado: Consulado) -> None:
+        """Enquanto a administração não aprova, o consulado é só uma solicitação: não muda nem recebe membros."""
+        if not consulado.aprovado:
+            raise RegraNegocioError(
+                "Este consulado ainda não foi aprovado pela administração. "
+                "Até a aprovação, não é possível editar seus dados nem vincular membros."
+            )
+
+    def exigir_edicao_permitida(self, usuario: Usuario, consulado: Consulado) -> None:
+        """Os dados de um consulado não aprovado só são alterados pelo administrador."""
+        if not usuario.is_admin:
+            self.exigir_aprovado(consulado)
+
     # -------------------------------------------------------------- membros
     @staticmethod
     def exigir_gestor(usuario: Usuario, consulado: Consulado) -> None:
@@ -113,6 +127,7 @@ class ConsuladoService:
         devolve a senha provisória para o embaixador repassar ao novo membro.
         """
         self.exigir_gestor(gestor, consulado)
+        self.exigir_aprovado(consulado)
         email = email.strip().lower()
         usuario = self.usuario_repositorio.get_queryset().filter(email__iexact=email).first()
         senha_provisoria = None
@@ -137,6 +152,7 @@ class ConsuladoService:
 
     def definir_cargo(self, gestor: Usuario, membro: MembroConsulado, cargo: str) -> MembroConsulado:
         self.exigir_gestor(gestor, membro.consulado)
+        self.exigir_aprovado(membro.consulado)
         return self.membro_repositorio.atualizar(membro, cargo=cargo.strip())
 
     def remover_membro(self, gestor: Usuario, membro: MembroConsulado) -> None:
@@ -176,6 +192,7 @@ class ConsuladoService:
     @transaction.atomic
     def responder_solicitacao(self, gestor: Usuario, solicitacao: SolicitacaoMembro, *, aprovar: bool) -> SolicitacaoMembro:
         self.exigir_gestor(gestor, solicitacao.consulado)
+        self.exigir_aprovado(solicitacao.consulado)
         if solicitacao.status_aprovacao != StatusAprovacao.PENDENTE:
             raise RegraNegocioError("Este pedido já foi respondido.")
         if aprovar:
@@ -204,6 +221,7 @@ class ConsuladoService:
             raise PermissaoNegadaError(
                 "Apenas o embaixador e os membros com cargo no consulado podem editar as fotos."
             )
+        self.exigir_aprovado(consulado)
 
     @transaction.atomic
     def adicionar_foto(self, usuario: Usuario, consulado: Consulado, *, imagem: File, legenda: str = "") -> FotoConsulado:

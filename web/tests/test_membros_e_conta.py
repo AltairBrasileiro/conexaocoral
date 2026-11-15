@@ -154,6 +154,68 @@ class EquipeEMapaTests(TestCase):
         self.assertContains(pagina, "Meu consulado")
 
 
+class ConsuladoSemAprovacaoTests(TestCase):
+    """Até o admin aprovar, o consulado é só uma solicitação: visível a quem pediu, sem edição nem membros."""
+
+    def setUp(self):
+        self.embaixador = criar_usuario(TipoUsuario.RESPONSAVEL_CONSULADO)
+        self.pendente = criar_consulado(
+            responsavel=self.embaixador, nome="Consulado Em Análise", status_aprovacao=StatusAprovacao.PENDENTE,
+        )
+        MembroConsulado.objects.create(usuario=self.embaixador, consulado=self.pendente)
+        self.detalhe = reverse("web:consulado", args=[self.pendente.pk])
+
+    def test_so_quem_solicitou_e_o_admin_veem(self):
+        self.client.force_login(self.embaixador)
+        self.assertContains(self.client.get(self.detalhe), "Aguardando aprovação")
+        self.client.force_login(criar_usuario(TipoUsuario.ADMIN))
+        self.assertEqual(self.client.get(self.detalhe).status_code, 200)
+        # Nem um vínculo de membro antigo dá acesso a quem não fez a solicitação.
+        vinculado = criar_usuario()
+        MembroConsulado.objects.create(usuario=vinculado, consulado=self.pendente)
+        self.client.force_login(vinculado)
+        self.assertEqual(self.client.get(self.detalhe).status_code, 404)
+
+    def test_fica_fora_do_mapa_ate_para_quem_solicitou(self):
+        for usuario in (self.embaixador, criar_usuario(), criar_usuario(TipoUsuario.ADMIN)):
+            self.client.force_login(usuario)
+            self.assertNotContains(self.client.get(reverse("web:consulados")), "Consulado Em Análise")
+
+    def test_painel_de_quem_solicitou_e_so_leitura(self):
+        self.client.force_login(self.embaixador)
+        pagina = self.client.get(reverse("web:painel"))
+        self.assertContains(pagina, "Sua solicitação está em análise")
+        self.assertNotContains(pagina, reverse("web:membros", args=[self.pendente.pk]))
+        self.assertNotContains(pagina, reverse("web:editar-consulado", args=[self.pendente.pk]))
+
+    def test_quem_solicitou_nao_edita_nem_vincula_membros(self):
+        self.client.force_login(self.embaixador)
+        for rota in ("web:editar-consulado", "web:membros", "web:fotos-consulado", "web:novo-evento"):
+            self.assertEqual(self.client.get(reverse(rota, args=[self.pendente.pk])).status_code, 403, rota)
+        resposta = self.client.post(
+            reverse("web:membros", args=[self.pendente.pk]), {"email": "novo@coral.com", "nome": "Novo Membro"},
+        )
+        self.assertEqual(resposta.status_code, 403)
+        self.assertEqual(MembroConsulado.objects.filter(consulado=self.pendente).count(), 1)
+
+    def test_servico_recusa_vinculo_ate_do_admin(self):
+        from core.exceptions import RegraNegocioError
+        from core.services import ConsuladoService
+
+        admin = criar_usuario(TipoUsuario.ADMIN)
+        with self.assertRaises(RegraNegocioError):
+            ConsuladoService().cadastrar_membro(admin, self.pendente, email="novo@coral.com", nome="Novo Membro")
+        self.assertEqual(MembroConsulado.objects.filter(consulado=self.pendente).count(), 1)
+
+    def test_depois_de_aprovado_o_embaixador_gerencia(self):
+        from core.services import ConsuladoService
+
+        ConsuladoService().aprovar_solicitacao(self.pendente, moderador=criar_usuario(TipoUsuario.ADMIN))
+        self.client.force_login(self.embaixador)
+        self.assertEqual(self.client.get(reverse("web:membros", args=[self.pendente.pk])).status_code, 200)
+        self.assertContains(self.client.get(reverse("web:consulados")), "Consulado Em Análise")
+
+
 class WhatsappObrigatorioTests(TestCase):
     def test_solicitacao_exige_whatsapp(self):
         self.client.force_login(criar_usuario())

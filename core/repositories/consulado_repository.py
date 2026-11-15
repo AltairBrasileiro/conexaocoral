@@ -14,16 +14,19 @@ class ConsuladoRepository(BaseRepository[Consulado]):
 
     def visiveis_para(self, usuario: Usuario) -> QuerySet[Consulado]:
         """
-        Admin vê tudo; demais usuários veem os aprovados e os que administram.
+        Admin vê tudo; demais usuários veem os aprovados e os que solicitaram ou
+        administram. Um consulado ainda não aprovado só aparece para quem o
+        solicitou (e para o admin); ele não recebe membros até a aprovação.
 
         Anota ``total_membros`` e ``eh_membro`` para evitar N+1 no serializer.
         """
+        eh_membro = Exists(MembroConsulado.objects.filter(consulado=OuterRef("pk"), usuario=usuario))
         qs = self.get_queryset()
         if not usuario.is_admin:
             qs = qs.filter(Q(status_aprovacao=StatusAprovacao.APROVADO) | Q(responsavel=usuario))
         return qs.annotate(
             total_membros=Count("filiacoes", distinct=True),
-            eh_membro=Exists(MembroConsulado.objects.filter(consulado=OuterRef("pk"), usuario=usuario)),
+            eh_membro=eh_membro,
         )
 
 
