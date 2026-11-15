@@ -1306,8 +1306,6 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   font-size: 12px;
   font-weight: 800;
 }
-.evento-cargo { display: flex; align-items: center; gap: 12px; padding: 12px; }
-.evento-cargo h3 { font-size: 15px; font-weight: 800; }
 .evento-painel__total strong span { font-size: 15px; color: var(--cinza-texto); font-weight: 800; }
 
 /* -------------------------------------------------------------- Fotos do evento (formulário) */

@@ -16,7 +16,8 @@ class EventoRepository(BaseRepository[Evento]):
         """
         Regras de visibilidade:
           * Admin vê todos.
-          * Responsável vê todos os eventos dos seus consulados (qualquer status).
+          * Responsável e membros com cargo veem todos os eventos dos seus
+            consulados (qualquer status), porque os gerenciam.
           * Demais: apenas aprovados; os exclusivos só aparecem para membros.
         """
         qs = self.get_queryset()
@@ -24,10 +25,14 @@ class EventoRepository(BaseRepository[Evento]):
             eh_membro = Exists(
                 MembroConsulado.objects.filter(consulado=OuterRef("consulado_id"), usuario=usuario)
             )
+            tem_cargo = Exists(
+                MembroConsulado.objects.filter(consulado=OuterRef("consulado_id"), usuario=usuario).exclude(cargo="")
+            )
             publico_ou_membro = Q(exclusivo_membros=False) | Q(eh_membro_organizador=True)
-            qs = qs.annotate(eh_membro_organizador=eh_membro).filter(
+            qs = qs.annotate(eh_membro_organizador=eh_membro, tem_cargo_no_organizador=tem_cargo).filter(
                 (Q(status_aprovacao=StatusAprovacao.APROVADO) & publico_ou_membro)
                 | Q(consulado__responsavel=usuario)
+                | Q(tem_cargo_no_organizador=True)
             )
         return qs.annotate(
             # Count faz o JOIN direto no banco: o filtro das retiradas precisa ser explícito.

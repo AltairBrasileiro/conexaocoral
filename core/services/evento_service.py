@@ -1,8 +1,9 @@
 """
 Regras de negócio de eventos e confirmações de presença.
 
-* Só o responsável pelo consulado (ou admin) cria/edita eventos do consulado,
-  com total autonomia: o evento é publicado na hora, sem moderação.
+* O embaixador, os membros com cargo no consulado e o admin criam, editam e
+  excluem os eventos do consulado, com total autonomia: o evento é publicado
+  na hora, sem moderação.
 * Eventos de consulados não aprovados não podem ser criados.
 * Eventos livres aceitam a confirmação de presença de qualquer torcedor;
   os exclusivos, só de MEMBROS do consulado organizador (e nem aparecem
@@ -45,6 +46,16 @@ class EventoService:
         self.presenca_repositorio = presenca_repositorio or PresencaEventoRepository()
         self.membro_repositorio = membro_repositorio or MembroConsuladoRepository()
 
+    # --------------------------------------------------------------- permissões
+    @staticmethod
+    def pode_gerir_eventos(usuario: Usuario, consulado: Consulado) -> bool:
+        """Admin, embaixador do consulado ou membro com cargo atribuído pelo embaixador."""
+        return (
+            usuario.is_admin
+            or consulado.responsavel_id == usuario.id
+            or MembroConsuladoRepository().tem_cargo(usuario, consulado.id)
+        )
+
     # ------------------------------------------------------------------ eventos
     @staticmethod
     def validar_dados_evento(
@@ -55,9 +66,10 @@ class EventoService:
         *,
         instancia: Evento | None = None,
     ) -> None:
-        if not usuario.is_admin and consulado.responsavel_id != usuario.id:
+        if not EventoService.pode_gerir_eventos(usuario, consulado):
             raise PermissaoNegadaError(
-                "Apenas o responsável pelo consulado pode gerenciar seus eventos.", campo="consulado",
+                "Apenas o embaixador e os membros com cargo no consulado podem gerenciar seus eventos.",
+                campo="consulado",
             )
         if not consulado.aprovado:
             raise RegraNegocioError("O consulado precisa estar aprovado para ter eventos.", campo="consulado")
@@ -138,8 +150,10 @@ class EventoService:
 
     @transaction.atomic
     def excluir_evento(self, evento: Evento, usuario: Usuario) -> None:
-        if not usuario.is_admin and evento.consulado.responsavel_id != usuario.id:
-            raise PermissaoNegadaError("Apenas o responsável pelo consulado pode excluir seus eventos.")
+        if not self.pode_gerir_eventos(usuario, evento.consulado):
+            raise PermissaoNegadaError(
+                "Apenas o embaixador e os membros com cargo no consulado podem excluir seus eventos."
+            )
         nomes = [foto.imagem.name for foto in evento.fotos.all()]
         self.repositorio.remover(evento)
         self._apagar_arquivos(nomes)

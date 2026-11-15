@@ -89,8 +89,9 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   admin), na página, no mapa e na API.
 - **Membros e cargos**: o embaixador cadastra membros (por e-mail; sem conta, cria uma conta de
   torcedor com senha provisória), remove membros e define cargos, exibidos na página pública.
-  Membros com cargo acessam o Painel para editar as fotos do consulado e ver as listas de confirmados.
-- **Eventos**: o embaixador (ou admin) cria, edita e exclui os eventos do próprio consulado, publicados
+  Membros com cargo acessam o Painel para editar as fotos do consulado, gerenciar os eventos e ver as
+  listas de confirmados.
+- **Eventos**: o embaixador, os membros com cargo (ou o admin) criam, editam e excluem os eventos do consulado, publicados
   na hora, com até 6 fotos e limite de vagas opcional.
 - **Presença em eventos**: eventos livres aceitam qualquer torcedor; os exclusivos só aparecem (e só
   aceitam confirmação) para membros. O torcedor desmarca a presença até o início do evento. O

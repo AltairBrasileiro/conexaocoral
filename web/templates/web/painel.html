@@ -86,23 +86,6 @@
   {% endif %}
   {% endif %}
 
-  {% if not pode_gerir %}
-  <h2 class="secao">Eventos do consulado <span class="pill">{{ eventos|length }}</span></h2>
-  {% for e in eventos %}
-    <article class="card evento-cargo">
-      {% include "web/_data_bloco.html" with data=e.data_hora_inicio %}
-      <div class="evento-painel__corpo">
-        <h3>{{ e.titulo }}</h3>
-        <p class="apoio pequeno">{{ e.data_hora_inicio|dia_hora }} · {{ e.total_confirmados }}{% if e.limite_vagas %} de {{ e.limite_vagas }} vagas{% else %} confirmado{{ e.total_confirmados|pluralize }}{% endif %}</p>
-      </div>
-      <a class="botao botao--contorno botao--compacto" href="{% url 'web:presencas-evento' e.pk %}"><span class="icon">list_alt</span>Confirmados</a>
-    </article>
-  {% empty %}
-    <div class="card linha"><span class="icon">celebration</span>Nenhum evento criado ainda.</div>
-  {% endfor %}
-  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita as fotos, acompanha a lista de confirmados dos eventos (com exportação em PDF) e oferece caronas aos membros. As demais configurações são do embaixador.</p>
-  {% endif %}
-
   {% if pode_gerir %}
 
   <h2 class="secao">Público previsto</h2>
@@ -128,6 +111,8 @@
     <div><dt><span class="icon">chat</span>Grupo do WhatsApp</dt><dd>{{ consulado.link_whatsapp|default:"Não informado" }}</dd></div>
     <div><dt><span class="icon">info</span>Descrição / funcionamento</dt><dd>{{ consulado.descricao|default:"Não informada"|linebreaksbr }}</dd></div>
   </dl>
+
+  {% endif %}{# pode_gerir #}
 
   <div class="secao secao--acao">
     <h2>Eventos do consulado</h2>
@@ -170,8 +155,6 @@
     <div class="card linha"><span class="icon">celebration</span>Nenhum evento criado ainda.</div>
   {% endfor %}
 
-  {% endif %}{# pode_gerir #}
-
   <div class="secao secao--acao">
     <h2>Carona Coral <span class="pill">{{ caronas|length }}</span></h2>
     {% if pode_oferecer_carona and consulado.aprovado %}
@@ -208,6 +191,9 @@
     <div class="card linha"><span class="icon">directions_car</span>Nenhuma carona programada.</div>
   {% endfor %}
   <p class="apoio pequeno nota-painel">As caronas aparecem só para os membros do consulado, até o prazo da oferta. Quem oferece faz o check-in dos passageiros e exporta a lista em PDF.</p>
+  {% if not pode_gerir %}
+  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita as fotos, cria, edita e exclui eventos, acompanha a lista de confirmados (com exportação em PDF) e oferece caronas aos membros. As demais configurações são do embaixador.</p>
+  {% endif %}
 
   {% endif %}{# sem_aprovacao #}
 

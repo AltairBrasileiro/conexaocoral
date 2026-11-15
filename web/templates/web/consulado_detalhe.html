@@ -159,7 +159,7 @@
       {% endif %}
       {% include "web/_data_bloco.html" with data=evento.data_hora_inicio %}
       <div class="evento__corpo">
-        <h3>{{ evento.titulo }}{% if pode_gerenciar %} <a class="editar-inline" href="{% url 'web:editar-evento' evento.pk %}" title="Editar evento" aria-label="Editar evento"><span class="icon">edit</span></a>{% endif %}{% if pode_ver_confirmados %} <a class="editar-inline" href="{% url 'web:presencas-evento' evento.pk %}" title="Lista de confirmados" aria-label="Lista de confirmados"><span class="icon">list_alt</span></a>{% endif %}</h3>
+        <h3>{{ evento.titulo }}{% if pode_gerir_eventos %} <a class="editar-inline" href="{% url 'web:editar-evento' evento.pk %}" title="Editar evento" aria-label="Editar evento"><span class="icon">edit</span></a>{% endif %}{% if pode_ver_confirmados %} <a class="editar-inline" href="{% url 'web:presencas-evento' evento.pk %}" title="Lista de confirmados" aria-label="Lista de confirmados"><span class="icon">list_alt</span></a>{% endif %}</h3>
         <p class="apoio">{{ evento.data_hora_inicio|dia_hora }} até {{ evento.data_hora_fim|hora }}</p>
         {% if evento.descricao %}<p class="texto">{{ evento.descricao|linebreaksbr }}</p>{% endif %}
         <div class="pills">

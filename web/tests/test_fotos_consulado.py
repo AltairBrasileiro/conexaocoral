@@ -122,17 +122,17 @@ class PainelDoMembroComCargoTests(TestCase):
         self.diretor = criar_usuario()
         MembroConsulado.objects.create(usuario=self.diretor, consulado=self.consulado, cargo="Secretário(a)")
 
-    def test_membro_com_cargo_ve_painel_so_com_fotos(self):
+    def test_membro_com_cargo_ve_painel_com_fotos_e_eventos(self):
         self.client.force_login(self.diretor)
         self.assertContains(self.client.get(reverse("web:partidas")), reverse("web:painel"))
         painel = self.client.get(reverse("web:painel"))
         self.assertEqual(painel.status_code, 200)
         self.assertContains(painel, "Consulado Coral Recife")
         self.assertContains(painel, reverse("web:fotos-consulado", args=[self.consulado.pk]))
+        self.assertContains(painel, reverse("web:novo-evento", args=[self.consulado.pk]))
         # As demais configurações continuam só com o embaixador.
         self.assertNotContains(painel, reverse("web:editar-consulado", args=[self.consulado.pk]))
         self.assertNotContains(painel, reverse("web:membros", args=[self.consulado.pk]))
-        self.assertNotContains(painel, reverse("web:novo-evento", args=[self.consulado.pk]))
 
     def test_torcedor_sem_cargo_nao_ve_painel(self):
         torcedor = criar_usuario()

@@ -124,10 +124,23 @@ def _consulado_administrado(usuario: Usuario, pk: int) -> Consulado:
     return consulado
 
 
+EVENTOS_DE_OUTRO_CONSULADO = "Você só pode alterar eventos dos consulados que administra ou em que tem cargo."
+
+
+def _consulado_com_eventos(usuario: Usuario, pk: int) -> Consulado:
+    """Embaixador, membro com cargo ou admin: quem cria, edita e exclui os eventos do consulado."""
+    consulado = get_object_or_404(Consulado, pk=pk)
+    if not EventoService.pode_gerir_eventos(usuario, consulado):
+        raise PermissionDenied(EVENTOS_DE_OUTRO_CONSULADO)
+    if not (usuario.is_admin or consulado.aprovado):
+        raise PermissionDenied(CONSULADO_SEM_APROVACAO)
+    return consulado
+
+
 def _evento_administrado(usuario: Usuario, pk: int) -> Evento:
     evento = get_object_or_404(Evento.objects.select_related("consulado"), pk=pk)
-    if not (usuario.is_admin or evento.consulado.responsavel_id == usuario.id):
-        raise PermissionDenied("Você só pode alterar eventos dos consulados que administra.")
+    if not EventoService.pode_gerir_eventos(usuario, evento.consulado):
+        raise PermissionDenied(EVENTOS_DE_OUTRO_CONSULADO)
     return evento
 
 
@@ -238,6 +251,7 @@ def consulado_detalhe(request: HttpRequest, pk: int) -> HttpResponse:
         "presencas_retiradas": retiradas,
         "pode_ver_confirmados": EventoService().pode_gerir_presencas_do_consulado(request.user, consulado),
         "pode_gerenciar": request.user.is_admin or consulado.responsavel_id == request.user.id,
+        "pode_gerir_eventos": EventoService.pode_gerir_eventos(request.user, consulado),
         "pode_ver_whatsapp": ConsuladoService().pode_ver_whatsapp(request.user, consulado),
         "fotos": list(consulado.fotos.all()),
         "partida": partida,
@@ -351,14 +365,7 @@ def painel(request: HttpRequest) -> HttpResponse:
         pode_editar_fotos=ConsuladoService().pode_editar_fotos(request.user, escolhido),
         fotos=list(FotoConsuladoRepository().do_consulado(escolhido)),
     )
-    if not pode_gerir:
-        # Membro com cargo: fotos e a lista de confirmados dos eventos do consulado.
-        contexto["eventos"] = list(
-            EventoRepository().visiveis_para(request.user).filter(consulado=escolhido).order_by("data_hora_inicio")
-        )
-        contexto["agora"] = timezone.now()
-        return render(request, "web/painel.html", contexto)
-
+    # Eventos: o embaixador e os membros com cargo criam, editam e excluem.
     eventos = list(
         EventoRepository()
         .visiveis_para(request.user)
@@ -367,15 +374,16 @@ def painel(request: HttpRequest) -> HttpResponse:
         .order_by("data_hora_inicio")
     )
     agora = timezone.now()
-    futuros = [e for e in eventos if e.data_hora_fim >= agora]
-    presencas_previstas = sum(e.total_confirmados for e in futuros)
+    contexto.update(eventos=eventos, agora=agora)
+    if not pode_gerir:
+        # Membro com cargo: fotos, eventos e caronas; as demais configurações são do embaixador.
+        return render(request, "web/painel.html", contexto)
 
+    futuros = [e for e in eventos if e.data_hora_fim >= agora]
     contexto.update(
         pedidos_entrada=SolicitacaoMembroRepository().pendentes_do_consulado(escolhido).count(),
-        eventos=eventos,
         eventos_futuros=len(futuros),
-        presencas_previstas=presencas_previstas,
-        agora=agora,
+        presencas_previstas=sum(e.total_confirmados for e in futuros),
     )
     return render(request, "web/painel.html", contexto)
 
@@ -393,7 +401,7 @@ def editar_consulado(request: HttpRequest, pk: int) -> HttpResponse:
 
 @login_required
 def novo_evento(request: HttpRequest, pk: int) -> HttpResponse:
-    consulado = _consulado_administrado(request.user, pk)
+    consulado = _consulado_com_eventos(request.user, pk)
     form = EventoForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         try:
