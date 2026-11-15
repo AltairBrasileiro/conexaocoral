@@ -28,7 +28,7 @@ class Evento(AprovavelModel):
         ordering = ("data_hora_inicio",)
         constraints = [
             models.CheckConstraint(
-                condition=Q(data_hora_fim__gt=F("data_hora_inicio")),
+                check=Q(data_hora_fim__gt=F("data_hora_inicio")),
                 name="ck_evento_fim_depois_inicio",
             ),
         ]

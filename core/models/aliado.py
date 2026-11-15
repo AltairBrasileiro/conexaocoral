@@ -36,7 +36,7 @@ class Aliado(AprovavelModel):
         constraints = [
             # Só aliados aprovados podem ostentar o selo de verificado.
             models.CheckConstraint(
-                condition=Q(selo_verificado=False) | Q(status_aprovacao=StatusAprovacao.APROVADO),
+                check=Q(selo_verificado=False) | Q(status_aprovacao=StatusAprovacao.APROVADO),
                 name="ck_aliado_selo_somente_aprovado",
             ),
         ]

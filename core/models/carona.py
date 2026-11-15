@@ -38,11 +38,11 @@ class Carona(TimeStampedModel):
         ordering = ("data_hora_encontro",)
         constraints = [
             models.CheckConstraint(
-                condition=Q(expira_em__lte=F("data_hora_encontro")),
+                check=Q(expira_em__lte=F("data_hora_encontro")),
                 name="ck_carona_expira_ate_o_encontro",
             ),
             models.CheckConstraint(
-                condition=Q(vagas__gte=1) & Q(vagas__lte=MAXIMO_VAGAS_CARONA),
+                check=Q(vagas__gte=1) & Q(vagas__lte=MAXIMO_VAGAS_CARONA),
                 name="ck_carona_vagas_validas",
             ),
         ]

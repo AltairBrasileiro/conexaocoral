@@ -1,4 +1,5 @@
 """Validadores reutilizáveis em models e serializers."""
+from __future__ import annotations
 from pathlib import PurePosixPath
 from urllib.parse import urlparse
 from uuid import uuid4

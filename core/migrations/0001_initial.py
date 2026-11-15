@@ -183,12 +183,12 @@ class Migration(migrations.Migration):
                 'verbose_name': 'aliado',
                 'verbose_name_plural': 'aliados',
                 'ordering': ('nome_negocio',),
-                'constraints': [models.CheckConstraint(condition=models.Q(('selo_verificado', False), ('status_aprovacao', 'APROVADO'), _connector='OR'), name='ck_aliado_selo_somente_aprovado')],
+                'constraints': [models.CheckConstraint(check=models.Q(('selo_verificado', False), ('status_aprovacao', 'APROVADO'), _connector='OR'), name='ck_aliado_selo_somente_aprovado')],
             },
         ),
         migrations.AddConstraint(
             model_name='evento',
-            constraint=models.CheckConstraint(condition=models.Q(('data_hora_fim__gt', models.F('data_hora_inicio'))), name='ck_evento_fim_depois_inicio'),
+            constraint=models.CheckConstraint(check=models.Q(('data_hora_fim__gt', models.F('data_hora_inicio'))), name='ck_evento_fim_depois_inicio'),
         ),
         migrations.AddConstraint(
             model_name='membroconsulado',

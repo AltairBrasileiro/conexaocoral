@@ -49,11 +49,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='carona',
-            constraint=models.CheckConstraint(condition=models.Q(('expira_em__lte', models.F('data_hora_encontro'))), name='ck_carona_expira_ate_o_encontro'),
+            constraint=models.CheckConstraint(check=models.Q(('expira_em__lte', models.F('data_hora_encontro'))), name='ck_carona_expira_ate_o_encontro'),
         ),
         migrations.AddConstraint(
             model_name='carona',
-            constraint=models.CheckConstraint(condition=models.Q(('vagas__gte', 1), ('vagas__lte', 50)), name='ck_carona_vagas_validas'),
+            constraint=models.CheckConstraint(check=models.Q(('vagas__gte', 1), ('vagas__lte', 50)), name='ck_carona_vagas_validas'),
         ),
         migrations.AddConstraint(
             model_name='reservacarona',
