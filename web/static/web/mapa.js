@@ -146,13 +146,22 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !folha.hidden) fecharResumo(); });
   mapa.on("click", function () { if (!folha.hidden) fecharResumo(); });
 
-  // Atalhos "Seu consulado": abrem o resumo do consulado no mapa.
+  // Atalhos "Meus consulados": abrem o resumo do consulado no mapa e recolhem
+  // a lista, para ela não cobrir o mapa nem o resumo (principalmente no celular).
+  var meusConsulados = document.getElementById("meus-consulados");
   document.querySelectorAll("[data-focar]").forEach(function (botao) {
     botao.addEventListener("click", function () {
       var c = consulados.find(function (x) { return String(x.id) === botao.dataset.focar; });
       if (c) abrirResumo(c);
+      if (meusConsulados) meusConsulados.open = false;
     });
   });
+  if (meusConsulados) {
+    mapa.on("click", function () { meusConsulados.open = false; });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && meusConsulados.open) meusConsulados.open = false;
+    });
+  }
 
   // Abertura do mapa: quem já é membro vê primeiro os próprios consulados
   // (com um só, o resumo dele já abre); os demais abrem perto de onde estão.

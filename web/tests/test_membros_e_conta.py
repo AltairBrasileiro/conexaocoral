@@ -151,7 +151,7 @@ class EquipeEMapaTests(TestCase):
         self.client.force_login(torcedor)
         pagina = self.client.get(reverse("web:consulados"))
         self.assertEqual([c["nome"] for c in pagina.context["meus_consulados"]], ["Consulado Coral Olinda"])
-        self.assertContains(pagina, "Seu consulado")
+        self.assertContains(pagina, "Meu consulado")
 
 
 class WhatsappObrigatorioTests(TestCase):

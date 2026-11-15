@@ -14,10 +14,28 @@
   </label>
   <p class="mapa__resumo" id="resumo-busca" aria-live="polite"></p>
   {% if meus_consulados %}
-  <div class="meus-consulados" aria-label="Consulados de que você é membro">
-    <span class="meus-consulados__titulo"><span class="icon">verified_user</span>{% if meus_consulados|length == 1 %}Seu consulado{% else %}Seus consulados{% endif %}</span>
-    {% for c in meus_consulados %}<button type="button" class="chip chip--compacto" data-focar="{{ c.id }}">{{ c.nome }}</button>{% endfor %}
-  </div>
+  <details class="card expansivel meus-consulados" id="meus-consulados">
+    <summary>
+      <span class="icon">verified_user</span>
+      <span>{% if meus_consulados|length == 1 %}Meu consulado{% else %}Meus consulados{% endif %}</span>
+      <span class="expansivel__total">{{ meus_consulados|length }}</span>
+      <span class="icon expansivel__seta">expand_more</span>
+    </summary>
+    <ul class="expansivel__lista" aria-label="Consulados de que você é membro">
+      {% for c in meus_consulados %}
+      <li>
+        <button type="button" class="expansivel__item" data-focar="{{ c.id }}">
+          <span class="icon">location_on</span>
+          <span class="expansivel__texto">
+            <strong>{{ c.nome }}</strong>
+            {% if c.endereco %}<small>{{ c.endereco }}</small>{% endif %}
+          </span>
+          <span class="icon">chevron_right</span>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
   {% endif %}
 </div>
 

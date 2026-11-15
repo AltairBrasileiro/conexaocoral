@@ -906,19 +906,72 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
 .indicador--destaque { background: var(--preto); border-color: var(--preto); color: var(--branco); }
 .indicador--destaque strong, .indicador--destaque small { color: var(--branco); }
 
-.expansivel { margin-top: 10px; }
-.expansivel summary {
+/* Bloco expansível (<details>/<summary>) — padrão único do app.
+   Linha-título: ícone (opcional), texto, contador (opcional) e seta à direita;
+   ao abrir, o conteúdo aparece abaixo separado por uma linha. */
+.expansivel { margin-top: 10px; overflow: hidden; }
+.expansivel > summary {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  min-height: 52px;
+  padding: 12px 16px;
   font-weight: 700;
   list-style: none;
   cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
 }
-.expansivel summary::-webkit-details-marker { display: none; }
-.expansivel__seta { margin-left: auto; transition: transform .2s; }
-.expansivel[open] .expansivel__seta { transform: rotate(180deg); }
+.expansivel > summary::-webkit-details-marker { display: none; }
+.expansivel > summary:hover { background: var(--fundo); }
+.expansivel > summary:focus-visible { outline-offset: -3px; border-radius: var(--raio); }
+.expansivel > summary > .icon:first-child { color: var(--vermelho); }
+.expansivel__total {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 12px;
+  background: var(--vermelho);
+  color: var(--branco);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.expansivel__seta { flex: none; margin-left: auto; color: var(--cinza-texto); transition: transform .2s; }
+.expansivel[open] > summary .expansivel__seta { transform: rotate(180deg); }
+.expansivel[open] > summary + * { border-top: 1px solid var(--cinza-borda); }
+/* Lista de opções clicáveis dentro do bloco (botões ou links). */
+.expansivel__lista {
+  max-height: min(40dvh, 280px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.expansivel__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.expansivel__item:hover, .expansivel__item:active { background: var(--fundo); }
+.expansivel__item:focus-visible { outline-offset: -3px; }
+.expansivel__item .icon { flex: none; color: var(--cinza-texto); }
+.expansivel__item[aria-current] { font-weight: 800; }
+.expansivel__item[aria-current] .icon { color: var(--vermelho); }
+.expansivel__texto { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.expansivel__texto strong, .expansivel__texto small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expansivel__texto small { color: var(--cinza-texto); font-size: 12px; }
 .lista { margin: 0; padding: 0 16px 12px; list-style: none; border-top: 1px solid var(--cinza-borda); }
 .lista li { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
 .lista li + li { border-top: 1px solid var(--fundo); }
@@ -931,14 +984,13 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
 .dados dt { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .dados dd { margin: 0 0 0 34px; color: var(--cinza-texto); overflow-wrap: anywhere; }
 
-.evento-painel summary { padding: 12px; font-weight: 400; }
+.evento-painel summary { font-weight: 400; }
 .evento-painel__corpo { flex: 1; min-width: 0; }
 .evento-painel h3 { font-size: 15px; font-weight: 800; }
 .evento-painel .pills { margin-top: 8px; }
 .evento-painel__total { display: flex; flex-direction: column; align-items: center; }
 .evento-painel__total strong { font-size: 24px; font-weight: 900; color: var(--vermelho); line-height: 1.1; }
 .evento-painel__total small { font-size: 11px; color: var(--cinza-texto); }
-.evento-painel .expansivel__seta { margin-left: 0; }
 
 /* -------------------------------------------------------------- Utilitários */
 .sr-only {
@@ -1184,37 +1236,18 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
 .equipe__lista { margin: 0; padding: 0; list-style: none; }
 .equipe__lista .membro { border-top: 1px solid var(--cinza-borda); }
 .equipe__lista:first-child .membro:first-child { border-top: 0; }
-.equipe__mais summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px;
-  border-top: 1px solid var(--cinza-borda);
-  color: var(--vermelho);
-  font-weight: 700;
-  list-style: none;
-  cursor: pointer;
-}
-.equipe__mais summary::-webkit-details-marker { display: none; }
+/* "Ver todos" da equipe: bloco expansível padrão, colado ao rodapé do card. */
+.equipe__mais { margin-top: 0; border-top: 1px solid var(--cinza-borda); border-radius: 0 0 var(--raio) var(--raio); }
+.equipe__mais[open] > summary + .equipe__lista { border-top: 0; }
 .equipe__ver-menos, .equipe__mais[open] .equipe__ver-mais { display: none; }
 .equipe__mais[open] .equipe__ver-menos { display: inline; }
-.equipe__mais[open] .expansivel__seta { transform: rotate(180deg); }
 
-.meus-consulados {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 6px 8px 6px 14px;
-  border-radius: 24px;
-  background: var(--branco);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, .15);
-}
-.meus-consulados__titulo { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; }
-.meus-consulados__titulo .icon { color: var(--vermelho); }
-.chip--compacto { padding: 5px 12px; font-size: 13px; }
+/* "Meus consulados" no mapa: bloco expansível padrão, flutuando sobre o mapa. */
+.meus-consulados { margin-top: 0; max-width: 100%; box-shadow: 0 3px 10px rgba(0, 0, 0, .15); }
+.meus-consulados[open] { width: 100%; max-width: 360px; }
+
+/* Seletor de consulado do Painel: mesmo bloco, com o consulado aberto em destaque. */
+.seletor-consulado { margin: 0 0 16px; }
 
 .membro__outros { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; color: var(--cinza-texto); white-space: normal !important; }
 .membro__outros .icon { font-size: 16px; }

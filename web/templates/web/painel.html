@@ -13,13 +13,25 @@
   {% else %}
 
   {% if consulados|length > 1 %}
-  <form method="get" class="campo seletor" data-auto-enviar>
-    <label for="seletor-consulado">Consulado</label>
-    <select id="seletor-consulado" name="consulado">
-      {% for c in consulados %}<option value="{{ c.pk }}"{% if c.pk == consulado.pk %} selected{% endif %}>{{ c.nome }}</option>{% endfor %}
-    </select>
-    <noscript><button type="submit" class="botao botao--compacto">Abrir</button></noscript>
-  </form>
+  <details class="card expansivel seletor-consulado">
+    <summary>
+      <span class="icon">store</span>
+      <span>Consulado</span>
+      <span class="expansivel__total">{{ consulados|length }}</span>
+      <span class="icon expansivel__seta">expand_more</span>
+    </summary>
+    <ul class="expansivel__lista" aria-label="Consulados que você administra">
+      {% for c in consulados %}
+      <li>
+        <a class="expansivel__item" href="?consulado={{ c.pk }}"{% if c.pk == consulado.pk %} aria-current="true"{% endif %}>
+          <span class="icon">{% if c.pk == consulado.pk %}check_circle{% else %}location_on{% endif %}</span>
+          <span class="expansivel__texto"><strong>{{ c.nome }}</strong></span>
+          <span class="icon">chevron_right</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
   {% endif %}
 
   <h2 class="painel__nome">{{ consulado.nome }}</h2>

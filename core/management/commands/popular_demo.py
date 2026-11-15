@@ -39,8 +39,8 @@ APROVADO = StatusAprovacao.APROVADO
 USUARIOS = [
     # (e-mail, nome, papel)
     ("admin@coral.com", "Admin Coral", TipoUsuario.ADMIN),
-    ("torcedor@coral.com", "Joana Tricolor", TipoUsuario.TORCEDOR),
-    ("embaixador@coral.com", "Carlos Embaixador", TipoUsuario.RESPONSAVEL_CONSULADO),
+    ("torcedor@coral.com", "Marta Tricolor", TipoUsuario.TORCEDOR),
+    ("embaixador@coral.com", "Altair Juba", TipoUsuario.RESPONSAVEL_CONSULADO),
     ("embaixadora.sp@coral.com", "Marta Paulista", TipoUsuario.RESPONSAVEL_CONSULADO),
     ("rubens.sousa@coral.com", "Rubens Sousa", TipoUsuario.RESPONSAVEL_CONSULADO),
     ("lojista@coral.com", "Rui do Comércio", TipoUsuario.RESPONSAVEL_ALIADO),
