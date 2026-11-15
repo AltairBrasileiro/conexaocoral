@@ -38,6 +38,7 @@
     <dl class="pix__dados">
       <div><dt>Chave Pix</dt><dd>{{ pix.chave }}</dd></div>
       <div><dt>Favorecido</dt><dd>{{ pix.nome }}</dd></div>
+      {% if pix.instituicao %}<div><dt>Instituição</dt><dd>{{ pix.instituicao }}</dd></div>{% endif %}
     </dl>
   </section>
 

@@ -113,7 +113,7 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
 - **Reportes**: qualquer usuário envia problemas ou sugestões ("Reportar problema ou sugestão", no menu
   do perfil); só administradores veem, na aba "Reportes" do painel, e marcam como resolvidos.
 - **Apoie o app**: página com Pix (QR Code e copia e cola) configurado em `CONEXAO_CORAL["PIX"]`
-  (por enquanto com chave fictícia e aviso de demonstração).
+  (chave aleatória da conta PicPay; QR Code no padrão BR Code do Banco Central).
 - **Ícone do consulado**: é o pino do consulado no mapa. O embaixador, os membros com cargo e o admin
   enviam, trocam e removem a imagem pelo Painel ("Ícone no mapa"); sem ícone, o mapa usa o pino padrão.
 - **Lojista (Vitrine da Torcida)**: qualquer usuário cadastra o próprio negócio em "Meus negócios", com

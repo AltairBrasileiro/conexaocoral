@@ -271,10 +271,12 @@ CONEXAO_CORAL = {
     # ATENÇÃO: chave FICTÍCIA, só para demonstração. Ao trocar pela chave real,
     # mude "ficticio" para False (o aviso de demonstração some da página).
     "PIX": {
-        "chave": "pix-ficticio@conexaocoral.com.br",
+        # Chave aleatória (EVP) da conta PicPay que recebe as contribuições.
+        "chave": "d8995ba4-de8f-46da-af83-62fb82313e01",
+        "instituicao": "PicPay",
         "nome": "Conexao Coral",
         "cidade": "Recife",
-        "ficticio": True,
+        "ficticio": False,
     },
     # Requisitos exibidos no formulário de solicitação de novo consulado; o
     # solicitante precisa declarar que os atende.

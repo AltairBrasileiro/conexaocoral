@@ -117,14 +117,26 @@ class ApoieTests(TestCase):
     def setUp(self):
         self.client.force_login(criar_usuario())
 
-    def test_pagina_mostra_pix_ficticio_com_aviso_e_qr(self):
+    def test_pagina_mostra_a_chave_picpay_com_qr_no_padrao_do_banco_central(self):
         pagina = self.client.get(reverse("web:apoie"))
-        self.assertContains(pagina, "Chave Pix fictícia.")
+        self.assertNotContains(pagina, "Chave Pix fictícia.")
         self.assertContains(pagina, "<svg")
+        self.assertContains(pagina, "PicPay")
         codigo = pagina.context["codigo_pix"]
         self.assertTrue(codigo.startswith("000201"))
-        self.assertIn("br.gov.bcb.pix", codigo)
+        # Conta Pix (campo 26): GUI do Banco Central + chave aleatória com 36 caracteres.
+        self.assertIn("26580014br.gov.bcb.pix0136d8995ba4-de8f-46da-af83-62fb82313e01", codigo)
+        self.assertIn("5303986", codigo)  # moeda: real
+        self.assertIn("5802BR", codigo)
         self.assertEqual(codigo[-4:], _crc16(codigo[:-4]))  # CRC confere
+
+    def test_crc16_segue_o_padrao_ccitt_do_br_code(self):
+        self.assertEqual(_crc16("123456789"), "29B1")  # valor de verificação do CRC-16/CCITT-FALSE
+
+    @override_settings(CONEXAO_CORAL={"PIX": {"chave": "pix@exemplo.com", "nome": "Conexao Coral", "cidade": "Recife",
+                                              "ficticio": True}, "REQUISITOS_CONSULADO": []})
+    def test_chave_ficticia_mostra_o_aviso(self):
+        self.assertContains(self.client.get(reverse("web:apoie")), "Chave Pix fictícia.")
 
     def test_valor_sugerido_entra_no_codigo(self):
         pagina = self.client.get(reverse("web:apoie"), {"valor": "25"})
