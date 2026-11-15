@@ -4,7 +4,7 @@
 
 {% block conteudo %}
 <div class="pagina pagina--media">
-  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <a class="voltar" href="{{ voltar_url }}"><span class="icon">arrow_back</span>{{ voltar_rotulo }}</a>
   <h1 class="titulo-pagina">Carona de {{ carona.motorista.nome }}</h1>
   <p class="apoio">{{ consulado.nome }} · encontro {{ carona.data_hora_encontro|dia_hora }}</p>
 

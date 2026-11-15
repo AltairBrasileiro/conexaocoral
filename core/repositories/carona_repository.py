@@ -16,10 +16,12 @@ class CaronaRepository(BaseRepository[Carona]):
     def visiveis_para(self, usuario: Usuario) -> QuerySet[Carona]:
         """
         Regras de visibilidade:
-          * Admin vê todas.
-          * Quem oferece, o embaixador do consulado e os passageiros veem a carona sempre.
-          * Demais membros do consulado: só enquanto a oferta não expira.
-          * Quem não é membro não vê nenhuma.
+          * Admin vê todas (moderação).
+          * Quem não é membro do consulado não vê nenhuma carona dele, mesmo que
+            tenha oferecido ou reservado antes de sair.
+          * Entre os membros: quem oferece e os passageiros veem a carona sempre;
+            os demais, só enquanto a oferta não expira.
+          * O embaixador vê todas as do próprio consulado.
 
         Anota ``total_reservas`` e ``reservado`` (o usuário tem vaga) para evitar N+1.
         """
@@ -28,10 +30,11 @@ class CaronaRepository(BaseRepository[Carona]):
         if not usuario.is_admin:
             eh_membro = Exists(MembroConsulado.objects.filter(consulado=OuterRef("consulado_id"), usuario=usuario))
             qs = qs.annotate(eh_membro_consulado=eh_membro, reservado=reservado).filter(
-                Q(motorista=usuario)
-                | Q(consulado__responsavel=usuario)
-                | Q(reservado=True)
-                | (Q(eh_membro_consulado=True) & Q(expira_em__gt=timezone.now()))
+                Q(consulado__responsavel=usuario)
+                | (
+                    Q(eh_membro_consulado=True)
+                    & (Q(motorista=usuario) | Q(reservado=True) | Q(expira_em__gt=timezone.now()))
+                )
             )
         else:
             qs = qs.annotate(reservado=reservado)

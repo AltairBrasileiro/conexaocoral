@@ -689,7 +689,8 @@ def minha_conta(request: HttpRequest) -> HttpResponse:
     )
     reservas_carona = list(
         ReservaCaronaRepository().do_usuario(request.user)
-        .filter(carona__data_hora_encontro__gte=agora)
+        # Só nos consulados de que ainda é membro: quem sai deixa de ver as caronas de lá.
+        .filter(carona__data_hora_encontro__gte=agora, carona__consulado__filiacoes__usuario=request.user)
         .order_by("carona__data_hora_encontro")
     )
     caronas_oferecidas = list(
@@ -877,6 +878,18 @@ def _caronas_do_consulado(usuario: Usuario, consulado: Consulado, *, desde) -> l
     )
 
 
+def _voltar_da_carona(usuario: Usuario, consulado: Consulado) -> dict[str, str]:
+    """Para onde voltar das telas da carona: o Painel (quem tem acesso a ele) ou a página do consulado."""
+    no_painel = (
+        usuario.is_admin
+        or consulado.responsavel_id == usuario.id
+        or MembroConsuladoRepository().tem_cargo(usuario, consulado.id)
+    )
+    if no_painel:
+        return {"voltar_url": _url_painel(consulado), "voltar_rotulo": "Painel"}
+    return {"voltar_url": reverse("web:consulado", args=[consulado.pk]), "voltar_rotulo": consulado.nome}
+
+
 def _carona_gerenciavel(usuario: Usuario, pk: int) -> Carona:
     """Quem oferece a carona, o embaixador do consulado ou o admin."""
     carona = get_object_or_404(CaronaRepository().get_queryset(), pk=pk)
@@ -904,7 +917,8 @@ def nova_carona(request: HttpRequest, pk: int) -> HttpResponse:
     consulado = get_object_or_404(ConsuladoRepository().visiveis_para(request.user), pk=pk)
     servico = CaronaService()
     if not servico.pode_oferecer(request.user, consulado):
-        raise PermissionDenied("Apenas o embaixador e os membros com cargo no consulado podem oferecer caronas.")
+        raise PermissionDenied("Apenas os membros do consulado podem oferecer caronas nele.")
+    voltar = _voltar_da_carona(request.user, consulado)
     form = CaronaForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:
@@ -913,13 +927,14 @@ def nova_carona(request: HttpRequest, pk: int) -> HttpResponse:
             _erro_no_form_da_carona(form, erro)
         else:
             messages.success(request, "Carona publicada para os membros do consulado.")
-            return redirect(_url_painel(consulado))
-    return render(request, "web/nova_carona.html", {"aba": "painel", "consulado": consulado, "form": form})
+            return redirect(voltar["voltar_url"])
+    return render(request, "web/nova_carona.html", {"aba": "painel", "consulado": consulado, "form": form, **voltar})
 
 
 @login_required
 def editar_carona(request: HttpRequest, pk: int) -> HttpResponse:
     carona = _carona_gerenciavel(request.user, pk)
+    voltar = _voltar_da_carona(request.user, carona.consulado)
     form = CaronaForm.para_carona(carona, request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:
@@ -928,10 +943,11 @@ def editar_carona(request: HttpRequest, pk: int) -> HttpResponse:
             _erro_no_form_da_carona(form, erro)
         else:
             messages.success(request, "Carona atualizada.")
-            return redirect(_url_painel(carona.consulado))
+            return redirect(voltar["voltar_url"])
     return render(request, "web/editar_carona.html", {
         "aba": "painel", "consulado": carona.consulado, "carona": carona, "form": form,
         "total_reservas": carona.reservas.count(),
+        **voltar,
     })
 
 
@@ -941,7 +957,7 @@ def excluir_carona(request: HttpRequest, pk: int) -> HttpResponse:
     carona = _carona_gerenciavel(request.user, pk)
     consulado = carona.consulado
     _executar(request, lambda: CaronaService().excluir_carona(carona, request.user), "Carona excluída.")
-    return redirect(_url_painel(consulado))
+    return redirect(_voltar_da_carona(request.user, consulado)["voltar_url"])
 
 
 @login_required
@@ -957,6 +973,7 @@ def passageiros_carona(request: HttpRequest, pk: int) -> HttpResponse:
         "vagas_livres": carona.vagas - len(reservas),
         "embarcados": sum(1 for r in reservas if r.checkin_em),
         "expirada": CaronaService.expirada(carona),
+        **_voltar_da_carona(request.user, carona.consulado),
     })
 
 

@@ -4,7 +4,7 @@
 
 {% block conteudo %}
 <div class="pagina pagina--formulario">
-  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <a class="voltar" href="{{ voltar_url }}"><span class="icon">arrow_back</span>{{ voltar_rotulo }}</a>
   <h1 class="titulo-pagina">Editar carona</h1>
   <p class="apoio">{{ consulado.nome }} · oferecida por {{ carona.motorista.nome }} · {{ total_reservas }} de {{ carona.vagas }} vaga{{ carona.vagas|pluralize }} reservada{{ carona.vagas|pluralize }}</p>
 
@@ -12,7 +12,7 @@
     {% csrf_token %}
     {% include "web/_carona_form.html" %}
     <div class="formulario__acoes">
-      <a class="botao-texto" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}">Cancelar</a>
+      <a class="botao-texto" href="{{ voltar_url }}">Cancelar</a>
       <button type="submit" class="botao botao--compacto">Salvar alterações</button>
     </div>
   </form>

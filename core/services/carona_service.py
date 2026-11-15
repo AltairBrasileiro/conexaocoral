@@ -1,12 +1,13 @@
 """
 Regras de negócio da Carona Coral.
 
-* Oferecem carona num consulado: o administrador, o embaixador do consulado e
-  os membros com cargo atribuído pelo embaixador.
+* A Carona Coral é exclusiva dos membros de cada consulado: só eles oferecem,
+  veem e reservam. Membros de outros consulados (e quem deixou o consulado)
+  não oferecem nem veem as caronas dele.
 * A carona tem vagas (1 a 50), um texto de até 500 caracteres, a data e hora
   do encontro e o prazo da oferta (até o horário do encontro).
-* Só membros do consulado veem a carona e reservam vaga, e só enquanto a
-  oferta não expira. Quem oferece não reserva vaga na própria carona.
+* Os membros veem a carona e reservam vaga só enquanto a oferta não expira.
+  Quem oferece não reserva vaga na própria carona.
 * O passageiro pode cancelar a própria reserva até o horário do encontro.
 * Quem oferece a carona (e também o embaixador e o admin) edita, exclui,
   retira passageiros, faz o check-in e exporta a lista em PDF.
@@ -43,17 +44,15 @@ class CaronaService:
 
     # ------------------------------------------------------------ permissões
     def pode_oferecer(self, usuario: Usuario, consulado: Consulado) -> bool:
-        """Administrador, embaixador do consulado ou membro com cargo atribuído pelo embaixador."""
-        return (
-            usuario.is_admin
-            or consulado.responsavel_id == usuario.id
-            or self.membro_repositorio.tem_cargo(usuario, consulado.id)
-        )
+        """Só membros do consulado (o embaixador é sempre membro do próprio consulado)."""
+        return consulado.responsavel_id == usuario.id or self.membro_repositorio.eh_membro(usuario, consulado.id)
 
     @staticmethod
     def pode_gerir(usuario: Usuario, carona: Carona) -> bool:
-        """Quem oferece a carona, o embaixador do consulado ou o administrador."""
-        return usuario.is_admin or carona.motorista_id == usuario.id or carona.consulado.responsavel_id == usuario.id
+        """Quem oferece a carona (enquanto for membro do consulado), o embaixador ou o administrador."""
+        if usuario.is_admin or carona.consulado.responsavel_id == usuario.id:
+            return True
+        return carona.motorista_id == usuario.id and MembroConsuladoRepository().eh_membro(usuario, carona.consulado_id)
 
     def exigir_gestor(self, usuario: Usuario, carona: Carona) -> None:
         if not self.pode_gerir(usuario, carona):
@@ -101,9 +100,7 @@ class CaronaService:
     # ---------------------------------------------------------------- ofertas
     def criar_carona(self, usuario: Usuario, consulado: Consulado, **dados: Any) -> Carona:
         if not self.pode_oferecer(usuario, consulado):
-            raise PermissaoNegadaError(
-                "Apenas o embaixador e os membros com cargo no consulado podem oferecer caronas.",
-            )
+            raise PermissaoNegadaError("Apenas os membros do consulado podem oferecer caronas nele.")
         dados["descricao"] = (dados.get("descricao") or "").strip()
         self._validar_dados(
             consulado, descricao=dados["descricao"], vagas=dados["vagas"],

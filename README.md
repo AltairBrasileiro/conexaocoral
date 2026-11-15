@@ -97,6 +97,9 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   aceitam confirmação) para membros. O torcedor desmarca a presença até o início do evento. O
   embaixador, os membros com cargo e o admin veem a lista de confirmados, retiram pessoas (que não
   conseguem confirmar de novo, até serem readmitidas) e exportam a lista em PDF.
+- **Carona Coral**: exclusiva dos membros de cada consulado. Qualquer membro oferece carona; só os
+  membros daquele consulado veem e reservam vaga. Membros de outros consulados (e quem saiu) não
+  oferecem nem veem as caronas dele.
 - **Reportes**: qualquer usuário envia problemas ou sugestões ("Reportar problema ou sugestão", no menu
   do perfil); só administradores veem, na aba "Reportes" do painel, e marcam como resolvidos.
 - **Apoie o app**: página com Pix (QR Code e copia e cola) configurado em `CONEXAO_CORAL["PIX"]`

@@ -48,20 +48,22 @@ class Cenario(TestCase):
 
 
 class QuemOfereceTests(Cenario):
-    def test_embaixador_membro_com_cargo_e_admin_oferecem(self):
-        admin = criar_usuario(TipoUsuario.ADMIN)
-        for usuario in (self.embaixador, self.diretor, admin):
+    def test_qualquer_membro_do_consulado_oferece(self):
+        for usuario in (self.embaixador, self.diretor, self.membro):
             carona = self.servico.criar_carona(usuario, self.consulado, **self.dados())
             self.assertEqual(carona.motorista, usuario)
 
-    def test_membro_sem_cargo_nao_oferece(self):
-        with self.assertRaises(PermissaoNegadaError):
-            self.servico.criar_carona(self.membro, self.consulado, **self.dados())
+    def test_quem_nao_e_membro_nao_oferece(self):
+        admin = criar_usuario(TipoUsuario.ADMIN)
+        for usuario in (self.de_fora, admin):
+            with self.assertRaises(PermissaoNegadaError):
+                self.servico.criar_carona(usuario, self.consulado, **self.dados())
 
-    def test_cargo_em_outro_consulado_nao_vale(self):
+    def test_membro_de_outro_consulado_nao_oferece(self):
         outro = criar_consulado()
-        with self.assertRaises(PermissaoNegadaError):
-            self.servico.criar_carona(self.diretor, outro, **self.dados())
+        for usuario in (self.diretor, self.membro, self.embaixador):
+            with self.assertRaises(PermissaoNegadaError):
+                self.servico.criar_carona(usuario, outro, **self.dados())
 
 
 class ValidacaoTests(Cenario):
@@ -104,6 +106,26 @@ class VisibilidadeTests(Cenario):
         carona = criar_carona(self.consulado)
         self.assertIn(carona.pk, self.visiveis(self.membro))
         self.assertNotIn(carona.pk, self.visiveis(self.de_fora))
+
+    def test_membro_de_outro_consulado_nao_ve(self):
+        carona = criar_carona(self.consulado)
+        outro = criar_consulado()
+        vizinho = criar_usuario()
+        MembroConsulado.objects.create(usuario=vizinho, consulado=outro, cargo="Diretor(a) de eventos")
+        self.assertNotIn(carona.pk, self.visiveis(vizinho))
+        self.assertNotIn(carona.pk, self.visiveis(outro.responsavel))
+
+    def test_quem_sai_do_consulado_deixa_de_ver_e_de_gerenciar(self):
+        oferecida = criar_carona(self.consulado, motorista=self.diretor)
+        reservada = criar_carona(self.consulado, motorista=self.embaixador)
+        ReservaCarona.objects.create(carona=reservada, usuario=self.diretor)
+        MembroConsulado.objects.filter(usuario=self.diretor).delete()
+        self.assertEqual(self.visiveis(self.diretor), set())
+        self.assertFalse(CaronaService.pode_gerir(self.diretor, oferecida))
+        self.client.force_login(self.diretor)
+        self.assertNotContains(self.client.get(reverse("web:minha-conta")), "Minhas caronas")
+        # O embaixador continua gerenciando a carona que ficou.
+        self.assertTrue(CaronaService.pode_gerir(self.embaixador, oferecida))
 
     def test_expirada_some_para_membros_mas_nao_para_passageiro_e_motorista(self):
         encontro = timezone.now() + timedelta(hours=3)
@@ -213,10 +235,30 @@ class PaginasTests(Cenario):
         self.assertContains(resposta, "A oferta precisa expirar até o horário do encontro.")
         self.assertFalse(Carona.objects.exists())
 
-    def test_membro_sem_cargo_nao_abre_o_formulario(self):
+    def test_membro_sem_cargo_oferece_e_volta_para_a_pagina_do_consulado(self):
         self.client.force_login(self.membro)
-        resposta = self.client.get(reverse("web:nova-carona", args=[self.consulado.pk]))
-        self.assertEqual(resposta.status_code, 403)
+        pagina_consulado = reverse("web:consulado", args=[self.consulado.pk])
+        url = reverse("web:nova-carona", args=[self.consulado.pk])
+        self.assertContains(self.client.get(pagina_consulado), url)
+        self.assertContains(self.client.get(url), pagina_consulado)  # "voltar" não leva ao Painel
+        encontro = timezone.now() + timedelta(days=3)
+        resposta = self.client.post(url, {
+            "descricao": "Saída da sede.", "vagas": "3",
+            "data_hora_encontro": local(encontro), "expira_em": local(encontro - timedelta(hours=2)),
+        })
+        self.assertRedirects(resposta, pagina_consulado)
+        carona = Carona.objects.get(motorista=self.membro)
+        self.assertEqual(self.client.get(reverse("web:passageiros-carona", args=[carona.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("web:editar-carona", args=[carona.pk])).status_code, 200)
+
+    def test_quem_nao_e_membro_nao_abre_o_formulario(self):
+        url = reverse("web:nova-carona", args=[self.consulado.pk])
+        vizinho = criar_usuario()
+        MembroConsulado.objects.create(usuario=vizinho, consulado=criar_consulado(), cargo="Diretor(a) de eventos")
+        for usuario in (self.de_fora, vizinho):
+            self.client.force_login(usuario)
+            self.assertEqual(self.client.get(url).status_code, 403)
+            self.assertNotContains(self.client.get(reverse("web:consulado", args=[self.consulado.pk])), url)
 
     def test_membro_ve_e_reserva_na_pagina_do_consulado(self):
         carona = criar_carona(self.consulado, motorista=self.diretor)
