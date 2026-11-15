@@ -30,7 +30,7 @@ from django.views.decorators.http import require_POST
 
 from core.exceptions import RegraNegocioError
 from core.models import (
-    Carona, CategoriaAliado, Consulado, Evento, MembroConsulado, Partida, PresencaEvento, Reporte, ReservaCarona,
+    Aliado, Carona, CategoriaAliado, Consulado, Evento, MembroConsulado, Partida, PresencaEvento, Reporte, ReservaCarona,
     StatusAprovacao, Usuario,
 )
 from core.repositories import (
@@ -40,7 +40,7 @@ from core.repositories import (
 from core.services import CaronaService, ConsuladoService, EventoService, ReporteService, UsuarioService
 from web.forms import (
     CARGOS, OUTRO_CARGO, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EsqueciSenhaForm, EventoForm,
-    FotoConsuladoForm, FotoPerfilForm, LegendaFotoForm, NovaSenhaForm, NovoMembroForm, PerfilForm, RejeicaoForm,
+    FotoConsuladoForm, FotoPerfilForm, IconeConsuladoForm, LegendaFotoForm, NovaSenhaForm, NovoMembroForm, PerfilForm, RejeicaoForm,
     ReporteForm, SolicitacaoConsuladoForm, TrocarSenhaForm,
 )
 from web.pdf import lista_da_carona, lista_de_presenca
@@ -105,7 +105,7 @@ def _executar(request: HttpRequest, acao: Callable[[], Any], sucesso: str) -> No
 
 
 def tem_painel(usuario: Usuario) -> bool:
-    """Admin, embaixador, ou membro com cargo (que no Painel edita as fotos do consulado)."""
+    """Admin, embaixador, ou membro com cargo (que no Painel edita o ícone, as fotos e os eventos)."""
     if usuario.is_admin or usuario.is_responsavel_consulado:
         return True
     return MembroConsuladoRepository().consulados_com_cargo(usuario).exists()
@@ -148,7 +148,7 @@ def _evento_administrado(usuario: Usuario, pk: int) -> Evento:
 
 def _exigir_admin(usuario: Usuario) -> None:
     if not usuario.is_admin:
-        raise PermissionDenied("Apenas administradores avaliam as solicitações de consulados.")
+        raise PermissionDenied("Esta área é exclusiva da administração do Conexão Coral.")
 
 
 def _total_solicitacoes(usuario: Usuario) -> int | None:
@@ -156,6 +156,16 @@ def _total_solicitacoes(usuario: Usuario) -> int | None:
     if not usuario.is_admin:
         return None
     return Consulado.objects.filter(status_aprovacao=StatusAprovacao.PENDENTE).count()
+
+
+def contadores_admin(usuario: Usuario) -> dict[str, int | None]:
+    """Pendências exibidas nas abas da administração (tudo None para quem não é admin)."""
+    admin = usuario.is_admin
+    return {
+        "total_solicitacoes": _total_solicitacoes(usuario),
+        "total_negocios": Aliado.objects.filter(status_aprovacao=StatusAprovacao.PENDENTE).count() if admin else None,
+        "total_reportes": _total_reportes(usuario),
+    }
 
 
 def _url_painel(consulado: Consulado) -> str:
@@ -199,7 +209,7 @@ def consulados(request: HttpRequest) -> HttpResponse:
             "descricao": c.descricao,
             "lat": float(c.latitude),
             "lng": float(c.longitude),
-            "logo": c.logo_url,
+            "logo": c.icone_url,
             "foto": fotos[0].src if fotos else "",
             "membros": c.total_membros,
             "eh_membro": bool(c.eh_membro),
@@ -305,7 +315,8 @@ def aliados(request: HttpRequest) -> HttpResponse:
     """Módulo 4 — Vitrine de aliados (negócios de torcedores)."""
     categoria = request.GET.get("categoria", "")
     busca = request.GET.get("q", "").strip()
-    lista = AliadoRepository().visiveis_para(request.user)
+    # Só os aprovados vão para a vitrine; os demais ficam em "Meus negócios" (e na administração).
+    lista = AliadoRepository().get_queryset().filter(status_aprovacao=StatusAprovacao.APROVADO)
     if categoria in CategoriaAliado.values:
         lista = lista.filter(categoria=categoria)
     else:
@@ -320,6 +331,7 @@ def aliados(request: HttpRequest) -> HttpResponse:
         "categorias": CATEGORIAS,
         "categoria": categoria,
         "busca": busca,
+        "meus_negocios": AliadoRepository().listar(usuario=request.user).count(),
     })
 
 
@@ -343,8 +355,7 @@ def painel(request: HttpRequest) -> HttpResponse:
     meus = list(lista)
     contexto: dict[str, Any] = {
         "aba": "painel", "subaba": "consulados", "consulados": meus,
-        "total_solicitacoes": _total_solicitacoes(request.user),
-        "total_reportes": _total_reportes(request.user),
+        **contadores_admin(request.user),
     }
     if not meus:
         return render(request, "web/painel.html", contexto)
@@ -365,6 +376,7 @@ def painel(request: HttpRequest) -> HttpResponse:
         pode_oferecer_carona=CaronaService().pode_oferecer(request.user, escolhido),
         meu_cargo=cargos.get(escolhido.id, ""),
         pode_editar_fotos=ConsuladoService().pode_editar_fotos(request.user, escolhido),
+        pode_editar_icone=ConsuladoService().pode_editar_icone(request.user, escolhido),
         fotos=list(FotoConsuladoRepository().do_consulado(escolhido)),
     )
     # Eventos: o embaixador e os membros com cargo criam, editam e excluem.
@@ -574,8 +586,7 @@ def solicitacoes(request: HttpRequest) -> HttpResponse:
         "subaba": "solicitacoes",
         "pendentes": list(pendentes),
         "recentes": list(recentes),
-        "total_solicitacoes": len(pendentes),
-        "total_reportes": _total_reportes(request.user),
+        **contadores_admin(request.user),
         "form_rejeicao": RejeicaoForm(),
     })
 
@@ -893,6 +904,45 @@ def remover_foto(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("web:fotos-consulado", pk=consulado_id)
 
 
+# -------------------------------------------------- ícone do consulado (pino)
+def _consulado_com_icone_editavel(usuario: Usuario, pk: int) -> Consulado:
+    """Embaixador, membro com cargo no consulado ou admin: quem troca o pino do mapa."""
+    consulado = get_object_or_404(ConsuladoRepository().visiveis_para(usuario), pk=pk)
+    if not ConsuladoService().pode_editar_icone(usuario, consulado):
+        raise PermissionDenied("Apenas o embaixador e os membros com cargo no consulado podem alterar o ícone do mapa.")
+    if not (usuario.is_admin or consulado.aprovado):
+        raise PermissionDenied(CONSULADO_SEM_APROVACAO)
+    return consulado
+
+
+@login_required
+def icone_consulado(request: HttpRequest, pk: int) -> HttpResponse:
+    """Envia o ícone do consulado (o pino do mapa) ou troca o atual."""
+    consulado = _consulado_com_icone_editavel(request.user, pk)
+    form = IconeConsuladoForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            ConsuladoService().definir_icone(request.user, consulado, form.cleaned_data["icone"])
+        except RegraNegocioError as erro:
+            form.add_error("icone", erro.mensagem)
+        else:
+            messages.success(request, "Ícone atualizado. É ele que aparece no pino do consulado no mapa.")
+            return redirect("web:icone-consulado", pk=consulado.pk)
+    return render(request, "web/icone_consulado.html", {"aba": "painel", "consulado": consulado, "form": form})
+
+
+@login_required
+@require_POST
+def remover_icone_consulado(request: HttpRequest, pk: int) -> HttpResponse:
+    consulado = _consulado_com_icone_editavel(request.user, pk)
+    _executar(
+        request,
+        lambda: ConsuladoService().remover_icone(request.user, consulado),
+        "Ícone removido. O consulado voltou a usar o pino padrão do mapa.",
+    )
+    return redirect("web:icone-consulado", pk=consulado.pk)
+
+
 # ------------------------------------------------------ presenças em eventos
 @login_required
 @require_POST
@@ -1199,8 +1249,7 @@ def reportes(request: HttpRequest) -> HttpResponse:
         "tipo_filtro": tipo_filtro,
         "status_opcoes": Reporte.Status.choices,
         "tipo_opcoes": Reporte.Tipo.choices,
-        "total_solicitacoes": _total_solicitacoes(request.user),
-        "total_reportes": _total_reportes(request.user),
+        **contadores_admin(request.user),
     })
 
 

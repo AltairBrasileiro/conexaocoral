@@ -6,7 +6,8 @@ from django.db import models
 from core.models.base import AprovavelModel
 from core.models.choices import StatusAprovacao, TipoUsuario
 from core.validators import (
-    upload_foto_consulado, validar_extensao_imagem, validar_link_whatsapp, validar_tamanho_imagem,
+    upload_foto_consulado, upload_icone_consulado, validar_extensao_imagem, validar_link_whatsapp,
+    validar_tamanho_imagem,
 )
 
 
@@ -33,7 +34,13 @@ class Consulado(AprovavelModel):
         validators=[MinValueValidator(-180), MaxValueValidator(180)],
     )
     link_whatsapp = models.URLField("link do WhatsApp", blank=True, validators=[validar_link_whatsapp])
-    # Emblema exibido no pino do mapa; sem logo, o app usa o pino padrão.
+    # Ícone exibido no pino do mapa, enviado pelo embaixador ou por um membro com cargo.
+    # Sem ícone, o mapa usa o pino padrão.
+    logo = models.ImageField(
+        "ícone do mapa", upload_to=upload_icone_consulado, blank=True,
+        validators=[validar_extensao_imagem, validar_tamanho_imagem],
+    )
+    # Link externo do ícone (cadastros antigos); o arquivo enviado tem prioridade.
     logo_url = models.URLField("URL do logo", max_length=500, blank=True)
     # Preenchido pelo administrador ao recusar a solicitação de cadastro.
     motivo_rejeicao = models.TextField("motivo da rejeição", blank=True)
@@ -53,6 +60,11 @@ class Consulado(AprovavelModel):
 
     def __str__(self) -> str:
         return self.nome
+
+    @property
+    def icone_url(self) -> str:
+        """Endereço do ícone do pino: o arquivo enviado tem prioridade sobre o link antigo."""
+        return self.logo.url if self.logo else self.logo_url
 
 
 class MembroConsulado(models.Model):

@@ -27,11 +27,13 @@ class ConsuladoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
     # Valores anotados pelo repositório (fallback seguro quando não anotados, ex.: após create).
     total_membros = serializers.SerializerMethodField()
     eh_membro = serializers.SerializerMethodField()
+    # Ícone do pino no mapa (arquivo enviado ou link antigo), sempre como URL absoluta.
+    icone = serializers.SerializerMethodField()
 
     class Meta:
         model = Consulado
         fields = (
-            "id", "nome", "descricao", "endereco", "latitude", "longitude", "link_whatsapp", "logo_url",
+            "id", "nome", "descricao", "endereco", "latitude", "longitude", "link_whatsapp", "logo_url", "icone",
             "status_aprovacao", "motivo_rejeicao", "responsavel", "fotos", "total_membros", "eh_membro",
             "criado_em",
         )
@@ -40,6 +42,10 @@ class ConsuladoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
     def get_total_membros(self, obj: Consulado) -> int:
         valor = getattr(obj, "total_membros", None)
         return valor if valor is not None else obj.filiacoes.count()
+
+    def get_icone(self, obj: Consulado) -> str:
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.icone_url) if request and obj.logo else obj.icone_url
 
     def get_eh_membro(self, obj: Consulado) -> bool:
         valor = getattr(obj, "eh_membro", None)

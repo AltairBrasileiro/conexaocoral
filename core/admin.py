@@ -154,7 +154,8 @@ class CaronaAdmin(admin.ModelAdmin):
 
 @admin.register(Aliado)
 class AliadoAdmin(admin.ModelAdmin):
-    list_display = ("nome_negocio", "categoria", "status_aprovacao", "selo_verificado")
+    list_display = ("nome_negocio", "usuario", "categoria", "status_aprovacao", "selo_verificado")
+    raw_id_fields = ("usuario",)
     list_filter = ("status_aprovacao", "categoria", "selo_verificado")
     search_fields = ("nome_negocio",)
     actions = (aprovar, rejeitar)

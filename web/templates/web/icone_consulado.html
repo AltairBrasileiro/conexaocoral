@@ -1,0 +1,35 @@
+{% extends "web/app.html" %}
+{% block titulo %}Ícone · {{ consulado.nome }} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <a class="voltar" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}"><span class="icon">arrow_back</span>Painel</a>
+  <h1 class="titulo-pagina">Ícone do consulado</h1>
+  <p class="apoio">{{ consulado.nome }}</p>
+  <p class="apoio">O ícone é o <strong>pino</strong> que marca o consulado no mapa. Sem ícone, o mapa mostra o pino vermelho padrão.</p>
+
+  <div class="card card--padding icone-atual">
+    {% include "web/_pino_previa.html" %}
+    <div class="icone-atual__corpo">
+      <strong>{% if consulado.icone_url %}Ícone atual{% else %}Pino padrão{% endif %}</strong>
+      <small class="apoio">{% if consulado.icone_url %}É assim que o consulado aparece no mapa.{% else %}O consulado ainda não tem ícone próprio.{% endif %}</small>
+      {% if consulado.icone_url %}
+      <form method="post" action="{% url 'web:remover-icone-consulado' consulado.pk %}" data-confirmar="Remover o ícone do {{ consulado.nome }}? O mapa volta a mostrar o pino padrão.">
+        {% csrf_token %}
+        <button type="submit" class="botao-texto"><span class="icon">delete</span>Remover ícone</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <h2 class="secao">{% if consulado.icone_url %}Trocar ícone{% else %}Enviar ícone{% endif %}</h2>
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "web/_campo_imagem.html" with campo=form.icone atual="" %}
+    <div class="formulario__acoes">
+      <a class="botao-texto" href="{% url 'web:painel' %}?consulado={{ consulado.pk }}">Cancelar</a>
+      <button type="submit" class="botao botao--compacto"><span class="icon">upload</span>{% if consulado.icone_url %}Trocar ícone{% else %}Enviar ícone{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

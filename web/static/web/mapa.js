@@ -56,7 +56,8 @@
 
   function atualizarResumo() {
     var n = visiveis.length;
-    resumo.textContent = n === 0 ? "Nenhum consulado encontrado" : n + " consulado" + (n === 1 ? "" : "s") + " no mapa";
+    // Só avisa quando a busca não encontra nada; o total de consulados não ocupa mais a tela.
+    resumo.textContent = n === 0 ? "Nenhum consulado encontrado" : "";
   }
 
   function filtrar() {

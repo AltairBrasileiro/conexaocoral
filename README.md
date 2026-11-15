@@ -29,6 +29,8 @@ conexao_coral/
     └── tests/             # Testes de integração das regras de negócio
 └── web/                   # Interface web (templates Django)
     ├── views.py           # Páginas: mapa, consulado, partidas, aliados, painel (delegam aos services)
+    ├── views_aliados.py   # Lojista: "Meus negócios" (cadastrar, editar e excluir o próprio negócio)
+    ├── views_admin.py     # Administração: negócios, usuários e partidas (abas do Painel do Administrador)
     ├── forms.py           # Login por e-mail, dados do consulado, novo evento
     ├── templatetags/      # Formatação em português (datas, plurais, confronto)
     ├── templates/web/     # Templates das páginas
@@ -112,8 +114,18 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   do perfil); só administradores veem, na aba "Reportes" do painel, e marcam como resolvidos.
 - **Apoie o app**: página com Pix (QR Code e copia e cola) configurado em `CONEXAO_CORAL["PIX"]`
   (por enquanto com chave fictícia e aviso de demonstração).
-- **Moderação de aliados**: nascem `PENDENTE` (exceto se criados por admin); edição do dono em aliado
-  aprovado volta para `PENDENTE`.
+- **Ícone do consulado**: é o pino do consulado no mapa. O embaixador, os membros com cargo e o admin
+  enviam, trocam e removem a imagem pelo Painel ("Ícone no mapa"); sem ícone, o mapa usa o pino padrão.
+- **Lojista (Vitrine da Torcida)**: qualquer usuário cadastra o próprio negócio em "Meus negócios", com
+  Instagram, WhatsApp e foto opcionais; o dono edita e exclui o que cadastrou (até 5 por conta). Ao
+  aprovar o negócio de um torcedor, ele vira Responsável por Aliado (lojista).
+- **Moderação de aliados**: nascem `PENDENTE` (exceto se criados por admin) e só aparecem na vitrine
+  depois de aprovados; edição do dono em aliado já avaliado volta para `PENDENTE`. A recusa pode levar
+  um motivo, que o dono vê.
+- **Administração sem Django Admin**: o Painel do Administrador tem as abas Consulados, Solicitações
+  (novos consulados), Negócios (aprovar, recusar, selo, tirar da vitrine), Usuários (busca, troca de
+  papel, bloquear/liberar acesso), Partidas (cadastrar, editar, excluir) e Reportes. O Django Admin
+  continua em `/admin/`, só para superusuários.
 - **Selo verificado**: apenas para aliados aprovados (garantido também por `CheckConstraint`).
 
 ## Produção (https://conexaocoral.com.br)

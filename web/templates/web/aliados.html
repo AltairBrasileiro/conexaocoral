@@ -4,7 +4,14 @@
 
 {% block conteudo %}
 <div class="pagina">
-  <h1 class="titulo-pagina">Vitrine da torcida</h1>
+  <div class="secao secao--acao secao--titulo">
+    <h1 class="titulo-pagina">Vitrine da torcida</h1>
+    {% if meus_negocios %}
+    <a class="botao botao--contorno botao--compacto" href="{% url 'web:meus-negocios' %}"><span class="icon">store</span>Meus negócios</a>
+    {% else %}
+    <a class="botao botao--contorno botao--compacto" href="{% url 'web:novo-negocio' %}"><span class="icon">add_business</span>Cadastrar meu negócio</a>
+    {% endif %}
+  </div>
   <p class="apoio">Negócios de torcedores tricolores. Prestigie quem veste a camisa.</p>
 
   <form method="get" class="filtros" data-auto-enviar>
@@ -28,6 +35,11 @@
   <div class="grade">
     {% for aliado in aliados %}
     <article class="card aliado">
+      {% if aliado.foto %}
+      <a class="aliado__foto" href="{{ aliado.foto.url }}" target="_blank" rel="noopener" title="Abrir a foto">
+        <img src="{{ aliado.foto.url }}" alt="Foto de {{ aliado.nome_negocio }}" loading="lazy">
+      </a>
+      {% endif %}
       <div class="aliado__topo">
         <span class="aliado__icone"><span class="icon">{{ aliado.categoria|icone_categoria }}</span></span>
         <div class="aliado__nome">

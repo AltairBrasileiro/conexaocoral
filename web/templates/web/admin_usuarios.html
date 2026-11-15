@@ -1,0 +1,69 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Usuários · Painel · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Administrador</h1>
+  {% include "web/_painel_abas.html" %}
+
+  <form method="get" class="filtros-reporte" data-auto-enviar>
+    <div class="campo">
+      <label for="busca-usuario">Buscar</label>
+      <input type="search" id="busca-usuario" name="q" value="{{ busca }}" placeholder="Nome ou e-mail">
+    </div>
+    <div class="campo">
+      <label for="filtro-papel">Papel</label>
+      <select id="filtro-papel" name="papel">
+        <option value=""{% if not papel %} selected{% endif %}>Todos</option>
+        {% for valor, rotulo in papeis %}<option value="{{ valor }}"{% if valor == papel %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        <option value="bloqueados"{% if papel == "bloqueados" %} selected{% endif %}>Acesso bloqueado</option>
+      </select>
+    </div>
+    <noscript><button type="submit" class="botao botao--compacto">Filtrar</button></noscript>
+  </form>
+
+  <h2 class="secao">Usuários <span class="pill">{{ total }}</span></h2>
+  {% if usuarios %}
+  <ul class="card membros lista-admin">
+    {% for u in usuarios %}
+    <li class="membro{% if not u.is_active %} membro--bloqueado{% endif %}">
+      <span class="avatar avatar--pequeno">{% if u.foto %}<img src="{{ u.foto.url }}" alt="">{% else %}{{ u.nome|inicial }}{% endif %}</span>
+      <div class="membro__info">
+        <strong>{{ u.nome }}{% if u.pk == user.pk %} (você){% endif %}</strong>
+        <small class="apoio">{{ u.email }}{% if u.telefone %} · {{ u.telefone }}{% endif %}</small>
+        <small class="apoio">Desde {{ u.criado_em|date:"d/m/Y" }}{% if u.last_login %} · último acesso em {{ u.last_login|date:"d/m/Y" }}{% else %} · nunca entrou{% endif %}{% if u.total_consulados %} · {{ u.total_consulados }} consulado{{ u.total_consulados|pluralize }}{% endif %}{% if u.total_negocios %} · {{ u.total_negocios }} negócio{{ u.total_negocios|pluralize }}{% endif %}</small>
+      </div>
+      {% if not u.is_active %}<span class="pill pill--preto"><span class="icon">block</span>Bloqueado</span>{% endif %}
+      {% if u.pk == user.pk or u.is_superuser and not user.is_superuser %}
+        <span class="pill">{{ u|papel }}</span>
+      {% else %}
+      <form method="post" action="{% url 'web:admin-papel-usuario' u.pk %}" class="membro__cargo" data-confirmar="Trocar o papel de {{ u.nome }}?">
+        {% csrf_token %}
+        <input type="hidden" name="proximo" value="{{ request.get_full_path }}">
+        <label class="sr-only" for="papel-{{ u.pk }}">Papel de {{ u.nome }}</label>
+        <select id="papel-{{ u.pk }}" name="tipo_usuario">
+          {% for valor, rotulo in papeis %}<option value="{{ valor }}"{% if valor == u.tipo_usuario %} selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="botao-texto" title="Salvar papel"><span class="icon">check</span><span class="sr-only">Salvar papel</span></button>
+      </form>
+      <form method="post" action="{% url 'web:admin-acesso-usuario' u.pk %}" data-confirmar="{% if u.is_active %}Bloquear o acesso de {{ u.nome }}? A pessoa não consegue mais entrar até ser liberada.{% else %}Liberar o acesso de {{ u.nome }}?{% endif %}">
+        {% csrf_token %}
+        <input type="hidden" name="proximo" value="{{ request.get_full_path }}">
+        {% if u.is_active %}
+        <button type="submit" name="acao" value="bloquear" class="botao-icone" title="Bloquear acesso" aria-label="Bloquear o acesso de {{ u.nome }}"><span class="icon">block</span></button>
+        {% else %}
+        <button type="submit" name="acao" value="liberar" class="botao-icone" title="Liberar acesso" aria-label="Liberar o acesso de {{ u.nome }}"><span class="icon">lock_open</span></button>
+        {% endif %}
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if total > limite %}<p class="apoio pequeno nota-painel">Mostrando os {{ limite }} primeiros de {{ total }}. Use a busca para encontrar uma conta específica.</p>{% endif %}
+  {% else %}
+    {% include "web/_vazio.html" with icone="group" titulo="Nenhum usuário encontrado" mensagem="Confira a busca e o filtro de papel." %}
+  {% endif %}
+  <p class="apoio pequeno nota-painel">O papel define o que a conta acessa: embaixadores administram consulados, lojistas cadastram negócios e administradores veem este painel. Bloquear o acesso impede a pessoa de entrar, sem apagar os dados dela.</p>
+</div>
+{% endblock %}

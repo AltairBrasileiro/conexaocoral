@@ -1,0 +1,39 @@
+{% extends "web/app.html" %}
+{% block titulo %}{% if negocio %}Editar negócio{% else %}Cadastrar negócio{% endif %} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <a class="voltar" href="{% url voltar %}"><span class="icon">arrow_back</span>{% if voltar == "web:admin-negocios" %}Negócios{% else %}Meus negócios{% endif %}</a>
+  <h1 class="titulo-pagina">{% if negocio %}Editar negócio{% else %}Cadastrar negócio{% endif %}</h1>
+  <p class="apoio">
+    {% if negocio %}{{ negocio.nome_negocio }}
+    {% elif user.is_admin %}Cadastros feitos pela administração já entram publicados na Vitrine da Torcida.
+    {% else %}Preencha os dados do seu negócio. A administração analisa o cadastro e, se aprovado, ele aparece na Vitrine da Torcida.{% endif %}
+  </p>
+  {% if volta_para_analise %}
+  <div class="card linha"><span class="icon">info</span><span>Ao salvar alterações, o negócio <strong>sai da vitrine</strong> até a administração aprovar de novo{% if negocio.selo_verificado %} e perde o selo de verificado{% endif %}.</span></div>
+  {% endif %}
+
+  <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    {% include "web/_campo.html" with campo=form.nome_negocio %}
+    {% include "web/_campo.html" with campo=form.categoria %}
+    {% include "web/_campo.html" with campo=form.descricao %}
+    {% include "web/_campo.html" with campo=form.link_instagram %}
+    {% include "web/_campo.html" with campo=form.link_whatsapp %}
+    {% include "web/_campo_imagem.html" with campo=form.foto atual=negocio.foto_url removivel=True %}
+    <div class="formulario__acoes">
+      <a class="botao-texto" href="{% url voltar %}">Cancelar</a>
+      <button type="submit" class="botao botao--compacto"><span class="icon">save</span>{% if negocio %}Salvar{% else %}Enviar cadastro{% endif %}</button>
+    </div>
+  </form>
+
+  {% if negocio %}
+  <form method="post" action="{% url 'web:excluir-negocio' negocio.pk %}" class="excluir-registro" data-confirmar="Excluir {{ negocio.nome_negocio }}? Ele sai da Vitrine da Torcida e não dá para desfazer.">
+    {% csrf_token %}
+    <button type="submit" class="botao botao--perigo botao--compacto"><span class="icon">delete</span>Excluir negócio</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

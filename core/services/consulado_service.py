@@ -250,6 +250,45 @@ class ConsuladoService:
             if item.ordem != posicao:
                 self.foto_repositorio.atualizar(item, ordem=posicao)
 
+    # ------------------------------------------------------- ícone do mapa
+    def pode_editar_icone(self, usuario: Usuario, consulado: Consulado) -> bool:
+        """Embaixador, membro com cargo no consulado ou administrador."""
+        return usuario.is_admin or self.pode_editar_fotos(usuario, consulado)
+
+    def exigir_editor_de_icone(self, usuario: Usuario, consulado: Consulado) -> None:
+        if not self.pode_editar_icone(usuario, consulado):
+            raise PermissaoNegadaError(
+                "Apenas o embaixador e os membros com cargo no consulado podem alterar o ícone do mapa."
+            )
+        self.exigir_edicao_permitida(usuario, consulado)
+
+    @staticmethod
+    def _apagar_icone(consulado: Consulado, nome: str) -> None:
+        if nome:
+            armazenamento = consulado.logo.storage
+            transaction.on_commit(lambda: armazenamento.delete(nome))
+
+    @transaction.atomic
+    def definir_icone(self, usuario: Usuario, consulado: Consulado, arquivo: File) -> Consulado:
+        """Envia o ícone do pino no mapa (ou troca o atual, apagando o arquivo antigo)."""
+        self.exigir_editor_de_icone(usuario, consulado)
+        anterior = consulado.logo.name if consulado.logo else ""
+        # O link externo antigo deixa de valer: o ícone passa a ser o arquivo enviado.
+        consulado = self.repositorio.atualizar(consulado, logo=arquivo, logo_url="")
+        self._apagar_icone(consulado, anterior)
+        return consulado
+
+    @transaction.atomic
+    def remover_icone(self, usuario: Usuario, consulado: Consulado) -> Consulado:
+        """Volta para o pino padrão do mapa."""
+        self.exigir_editor_de_icone(usuario, consulado)
+        if not consulado.icone_url:
+            raise RegraNegocioError("O consulado já usa o pino padrão do mapa.")
+        anterior = consulado.logo.name if consulado.logo else ""
+        consulado = self.repositorio.atualizar(consulado, logo="", logo_url="")
+        self._apagar_icone(consulado, anterior)
+        return consulado
+
     def remover_foto(self, usuario: Usuario, foto: FotoConsulado) -> None:
         self.exigir_editor_de_fotos(usuario, foto.consulado)
         arquivo = foto.imagem.name

@@ -15,12 +15,13 @@ class AliadoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
         model = Aliado
         fields = (
             "id", "usuario", "nome_negocio", "categoria", "categoria_display", "descricao",
-            "link_instagram", "link_whatsapp", "status_aprovacao", "selo_verificado", "criado_em",
+            "link_instagram", "link_whatsapp", "foto", "status_aprovacao", "motivo_rejeicao", "selo_verificado",
+            "criado_em",
         )
         # Moderação e selo só mudam pelas actions exclusivas do admin.
-        read_only_fields = ("id", "status_aprovacao", "selo_verificado", "criado_em")
+        read_only_fields = ("id", "status_aprovacao", "motivo_rejeicao", "selo_verificado", "criado_em")
 
     def validate(self, attrs: dict) -> dict:
         if self.instance is None:
-            self.executar_validacao(AliadoService.validar_criacao, self.usuario_logado)
+            self.executar_validacao(AliadoService().validar_criacao, self.usuario_logado)
         return attrs

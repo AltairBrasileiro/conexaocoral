@@ -69,6 +69,14 @@ def upload_foto_consulado(instancia, nome_original: str) -> str:
     return _caminho_aleatorio("consulados", nome_original)
 
 
+def upload_icone_consulado(instancia, nome_original: str) -> str:
+    return _caminho_aleatorio("consulados/icones", nome_original)
+
+
+def upload_foto_aliado(instancia, nome_original: str) -> str:
+    return _caminho_aleatorio("aliados", nome_original)
+
+
 def upload_imagem_evento(instancia, nome_original: str) -> str:
     return _caminho_aleatorio("eventos", nome_original)
 

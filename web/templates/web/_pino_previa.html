@@ -1,0 +1,4 @@
+{% comment %}Prévia do pino do consulado no mapa. Parâmetro: consulado.{% endcomment %}
+<span class="pino-previa{% if consulado.icone_url %} pino-previa--logo{% endif %}" aria-hidden="true">
+  {% if consulado.icone_url %}<img src="{{ consulado.icone_url }}" alt="">{% else %}<span class="icon">sports_bar</span>{% endif %}
+</span>

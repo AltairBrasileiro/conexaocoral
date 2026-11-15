@@ -141,6 +141,37 @@ class UsuarioService:
         self._apagar_arquivo(usuario, anterior)
         return usuario
 
+    # ------------------------------------------- gestão pelo administrador
+    @staticmethod
+    def _exigir_gestao(admin: Usuario, usuario: Usuario) -> None:
+        if not admin.is_admin:
+            raise PermissaoNegadaError("Apenas administradores gerenciam as contas dos usuários.")
+        if admin.pk == usuario.pk:
+            raise RegraNegocioError("Você não pode alterar o papel nem o acesso da sua própria conta.")
+        if usuario.is_superuser and not admin.is_superuser:
+            raise PermissaoNegadaError("Esta conta só pode ser alterada por um superusuário.")
+
+    @transaction.atomic
+    def definir_papel(self, admin: Usuario, usuario: Usuario, tipo_usuario: str) -> Usuario:
+        """Troca o papel da conta (torcedor, embaixador, lojista ou administrador)."""
+        self._exigir_gestao(admin, usuario)
+        if tipo_usuario not in TipoUsuario.values:
+            raise RegraNegocioError("Papel inválido.", campo="tipo_usuario")
+        if usuario.tipo_usuario == tipo_usuario:
+            raise RegraNegocioError("A conta já tem este papel.", codigo="status_inalterado")
+        return self.repositorio.atualizar(usuario, tipo_usuario=tipo_usuario)
+
+    @transaction.atomic
+    def definir_ativo(self, admin: Usuario, usuario: Usuario, ativo: bool) -> Usuario:
+        """Bloqueia ou libera o acesso da conta. Bloquear encerra as sessões do aplicativo."""
+        self._exigir_gestao(admin, usuario)
+        if usuario.is_active == ativo:
+            raise RegraNegocioError("A conta já está neste estado.", codigo="status_inalterado")
+        usuario = self.repositorio.atualizar(usuario, is_active=ativo)
+        if not ativo:
+            self.encerrar_sessoes_do_app(usuario)
+        return usuario
+
     # ---------------------------------------------------------------- senha
     @staticmethod
     def validar_nova_senha(usuario: Usuario, senha: str) -> None:

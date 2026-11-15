@@ -1,0 +1,47 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Partidas · Painel · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Administrador</h1>
+  {% include "web/_painel_abas.html" %}
+
+  <div class="secao secao--acao">
+    <h2>{% if anteriores %}Partidas anteriores{% else %}Próximas partidas{% endif %} <span class="pill">{{ partidas|length }}</span></h2>
+    <a class="botao botao--compacto" href="{% url 'web:admin-nova-partida' %}"><span class="icon">add</span>Nova partida</a>
+  </div>
+  <nav class="chips" aria-label="Período">
+    <a class="chip{% if not anteriores %} chip--ativo{% endif %}" href="{% url 'web:admin-partidas' %}"><span class="icon">upcoming</span>Próximas</a>
+    <a class="chip{% if anteriores %} chip--ativo{% endif %}" href="{% url 'web:admin-partidas' %}?periodo=anteriores"><span class="icon">history</span>Anteriores</a>
+  </nav>
+
+  {% if partidas %}
+  <ul class="card membros lista-admin">
+    {% for partida in partidas %}
+    <li class="membro">
+      {% include "web/_data_bloco.html" with data=partida.data_hora %}
+      <div class="membro__info">
+        <strong>{{ partida|confronto }}</strong>
+        <small class="apoio">{{ partida.data_hora|dia_hora }}</small>
+        <small class="apoio">{{ partida.campeonato }}{% if partida.canal_transmissao %} · {{ partida.canal_transmissao }}{% endif %}</small>
+      </div>
+      <div class="lista-admin__acoes">
+        <a class="botao-texto" href="{% url 'web:admin-editar-partida' partida.pk %}"><span class="icon">edit</span>Editar</a>
+        <form method="post" action="{% url 'web:admin-excluir-partida' partida.pk %}" data-confirmar="Excluir a partida {{ partida|confronto }} do calendário?">
+          {% csrf_token %}
+          <button type="submit" class="botao-icone" title="Excluir partida" aria-label="Excluir a partida {{ partida|confronto }}"><span class="icon">delete</span></button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    {% if anteriores %}
+      {% include "web/_vazio.html" with icone="sports_soccer" titulo="Nenhum jogo anterior" %}
+    {% else %}
+      {% include "web/_vazio.html" with icone="sports_soccer" titulo="Nenhum jogo agendado" mensagem="Cadastre a próxima partida para ela aparecer no calendário e na página dos consulados." %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

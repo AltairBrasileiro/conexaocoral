@@ -37,10 +37,16 @@ Rotas da interface web (templates Django + login por sessão).
     painel/caronas/{id}/passageiros.pdf     a mesma lista em PDF
     painel/reservas-carona/{id}/checkin/ | retirar/ | readmitir/  POST check-in (ou desfazer) / retirar / readmitir
     caronas/{id}/reservar/ | cancelar/      POST membro reserva / cancela a própria vaga
+    painel/consulados/{id}/icone/ | icone/remover/  ícone do consulado, o pino do mapa (embaixador, membro com cargo, admin)
+    aliados/meus/ | novo/                   lojista: meus negócios e novo cadastro
+    aliados/{id}/editar/ | excluir/         o dono edita / exclui o próprio negócio
+    painel/negocios/                        admin: aprova, recusa, dá o selo e remove negócios da vitrine
+    painel/usuarios/                        admin: busca contas, troca o papel e bloqueia/libera o acesso
+    painel/partidas/ | nova/ | {id}/editar/ | {id}/excluir/  admin: calendário de partidas
 """
 from django.urls import path
 
-from web import views
+from web import views, views_admin, views_aliados
 
 app_name = "web"
 
@@ -100,4 +106,22 @@ urlpatterns = [
     path("painel/reservas-carona/<int:pk>/readmitir/", views.readmitir_passageiro, name="readmitir-passageiro"),
     path("caronas/<int:pk>/reservar/", views.reservar_carona, name="reservar-carona"),
     path("caronas/<int:pk>/cancelar/", views.cancelar_reserva_carona, name="cancelar-reserva-carona"),
+    # Ícone do consulado (pino do mapa)
+    path("painel/consulados/<int:pk>/icone/", views.icone_consulado, name="icone-consulado"),
+    path("painel/consulados/<int:pk>/icone/remover/", views.remover_icone_consulado, name="remover-icone-consulado"),
+    # Lojista: meus negócios na Vitrine da Torcida
+    path("aliados/meus/", views_aliados.meus_negocios, name="meus-negocios"),
+    path("aliados/novo/", views_aliados.novo_negocio, name="novo-negocio"),
+    path("aliados/<int:pk>/editar/", views_aliados.editar_negocio, name="editar-negocio"),
+    path("aliados/<int:pk>/excluir/", views_aliados.excluir_negocio, name="excluir-negocio"),
+    # Administração
+    path("painel/negocios/", views_admin.negocios, name="admin-negocios"),
+    path("painel/negocios/<int:pk>/moderar/", views_admin.moderar_negocio, name="admin-moderar-negocio"),
+    path("painel/usuarios/", views_admin.usuarios, name="admin-usuarios"),
+    path("painel/usuarios/<int:pk>/papel/", views_admin.papel_usuario, name="admin-papel-usuario"),
+    path("painel/usuarios/<int:pk>/acesso/", views_admin.acesso_usuario, name="admin-acesso-usuario"),
+    path("painel/partidas/", views_admin.partidas, name="admin-partidas"),
+    path("painel/partidas/nova/", views_admin.nova_partida, name="admin-nova-partida"),
+    path("painel/partidas/<int:pk>/editar/", views_admin.editar_partida, name="admin-editar-partida"),
+    path("painel/partidas/<int:pk>/excluir/", views_admin.excluir_partida, name="admin-excluir-partida"),
 ]

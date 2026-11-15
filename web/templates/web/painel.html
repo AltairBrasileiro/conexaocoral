@@ -69,6 +69,17 @@
   </dl>
   {% else %}
 
+  {% if pode_editar_icone %}
+  <div class="secao secao--acao">
+    <h2>Ícone no mapa</h2>
+    <a class="botao botao--compacto" href="{% url 'web:icone-consulado' consulado.pk %}"><span class="icon">add_location_alt</span>{% if consulado.icone_url %}Editar ícone{% else %}Enviar ícone{% endif %}</a>
+  </div>
+  <div class="card linha icone-linha">
+    {% include "web/_pino_previa.html" %}
+    <span>{% if consulado.icone_url %}Este é o pino que marca o consulado no mapa.{% else %}O consulado usa o pino padrão. Envie um escudo ou logo para destacá-lo no mapa.{% endif %}</span>
+  </div>
+  {% endif %}
+
   {% if pode_editar_fotos %}
   <div class="secao secao--acao">
     <h2>Fotos do consulado <span class="pill">{{ fotos|length }}</span></h2>
@@ -192,7 +203,7 @@
   {% endfor %}
   <p class="apoio pequeno nota-painel">Qualquer membro do consulado oferece carona, e as caronas aparecem só para os membros dele, até o prazo da oferta. Quem oferece faz o check-in dos passageiros e exporta a lista em PDF.</p>
   {% if not pode_gerir %}
-  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita as fotos, cria, edita e exclui eventos e acompanha a lista de confirmados (com exportação em PDF). As demais configurações são do embaixador.</p>
+  <p class="apoio pequeno nota-painel">Com o seu cargo no consulado, você edita o ícone do mapa e as fotos, cria, edita e exclui eventos e acompanha a lista de confirmados (com exportação em PDF). As demais configurações são do embaixador.</p>
   {% endif %}
 
   {% endif %}{# sem_aprovacao #}

@@ -1,0 +1,27 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}{% if partida %}Editar partida{% else %}Nova partida{% endif %} · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--formulario">
+  <a class="voltar" href="{% url 'web:admin-partidas' %}"><span class="icon">arrow_back</span>Partidas</a>
+  <h1 class="titulo-pagina">{% if partida %}Editar partida{% else %}Nova partida{% endif %}</h1>
+  {% if partida %}<p class="apoio">{{ partida|confronto }}</p>{% endif %}
+
+  <form method="post" class="card card--padding formulario" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    <div class="formulario__linha">
+      {% include "web/_campo.html" with campo=form.adversario %}
+      {% include "web/_campo.html" with campo=form.mando_campo %}
+    </div>
+    {% include "web/_campo.html" with campo=form.campeonato %}
+    {% include "web/_campo.html" with campo=form.data_hora %}
+    {% include "web/_campo.html" with campo=form.canal_transmissao %}
+    <div class="formulario__acoes">
+      <a class="botao-texto" href="{% url 'web:admin-partidas' %}">Cancelar</a>
+      <button type="submit" class="botao botao--compacto"><span class="icon">save</span>Salvar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

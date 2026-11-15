@@ -8,7 +8,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, Set
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 
-from core.models import Consulado, Reporte
+from core.models import Aliado, Consulado, Partida, Reporte, TipoUsuario
 from core.models.carona import MAXIMO_CARACTERES_CARONA, MAXIMO_VAGAS_CARONA
 from core.validators import TAMANHO_MAXIMO_IMAGEM_MB, validar_extensao_imagem, validar_tamanho_imagem
 
@@ -483,3 +483,109 @@ class NovaSenhaForm(SetPasswordForm):
         )
         self.fields["new_password2"].label = "Confirme a nova senha"
         self.fields["new_password2"].help_text = ""
+
+
+# ------------------------------------------------------- ícone do consulado
+class IconeConsuladoForm(forms.Form):
+    """Ícone do consulado: é o pino que aparece no mapa."""
+
+    icone = forms.ImageField(
+        label="Ícone do consulado",
+        help_text=f"De preferência quadrado (escudo ou logo). JPG, PNG ou WebP de até {TAMANHO_MAXIMO_IMAGEM_MB} MB.",
+        error_messages={"required": "Escolha a imagem que vai enviar."},
+        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+    def clean_icone(self):
+        return _validar_upload_imagem(self.cleaned_data.get("icone"))
+
+
+# ------------------------------------------------- negócio do lojista (aliado)
+class AliadoForm(forms.ModelForm):
+    """Negócio exibido na Vitrine da Torcida (as regras ficam no ``AliadoService``)."""
+
+    foto = forms.ImageField(
+        label="Foto do negócio (opcional)",
+        required=False,
+        help_text=f"Fachada, produtos ou logo. JPG, PNG ou WebP de até {TAMANHO_MAXIMO_IMAGEM_MB} MB.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+    class Meta:
+        model = Aliado
+        fields = ("nome_negocio", "categoria", "descricao", "link_instagram", "link_whatsapp")
+        labels = {
+            "nome_negocio": "Nome do negócio",
+            "categoria": "Categoria",
+            "descricao": "Descrição",
+            "link_instagram": "Página do Instagram (opcional)",
+            "link_whatsapp": "WhatsApp (opcional)",
+        }
+        widgets = {
+            "nome_negocio": forms.TextInput(attrs={"placeholder": "Ex.: Bar do Arruda"}),
+            "descricao": forms.Textarea(attrs={
+                "rows": 4, "placeholder": "O que você oferece, onde fica, horários, desconto para a torcida…",
+            }),
+            "link_instagram": forms.URLInput(attrs={"placeholder": "https://instagram.com/seu_perfil"}),
+            "link_whatsapp": forms.URLInput(attrs={"placeholder": "https://wa.me/5581999999999"}),
+        }
+        error_messages = {
+            "nome_negocio": {"required": "Informe o nome do negócio."},
+            "categoria": {"required": "Escolha a categoria."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["descricao"].required = True
+        self.fields["descricao"].error_messages["required"] = "Descreva o seu negócio."
+
+    def clean_foto(self):
+        # False = "Remover a imagem atual" marcado; None = nada enviado.
+        foto = self.cleaned_data.get("foto")
+        return foto if foto is False else _validar_upload_imagem(foto)
+
+    def dados_aliado(self) -> dict:
+        """Campos esperados por ``AliadoService`` (a foto vai à parte: ver as views)."""
+        return {campo: self.cleaned_data[campo] for campo in self.Meta.fields}
+
+
+# -------------------------------------------------------------- administração
+class PartidaForm(forms.ModelForm):
+    data_hora = _campo_data_hora("Data e hora", _amanha_as(16))
+
+    class Meta:
+        model = Partida
+        fields = ("adversario", "mando_campo", "campeonato", "data_hora", "canal_transmissao")
+        labels = {
+            "adversario": "Adversário",
+            "mando_campo": "Mando de campo",
+            "campeonato": "Campeonato",
+            "canal_transmissao": "Onde assistir (opcional)",
+        }
+        widgets = {
+            "adversario": forms.TextInput(attrs={"placeholder": "Ex.: Náutico"}),
+            "campeonato": forms.TextInput(attrs={"placeholder": "Ex.: Campeonato Pernambucano"}),
+            "canal_transmissao": forms.TextInput(attrs={"placeholder": "Ex.: TV Globo, Premiere"}),
+        }
+        error_messages = {
+            "adversario": {"required": "Informe o adversário."},
+            "campeonato": {"required": "Informe o campeonato."},
+            "mando_campo": {"required": "Escolha o mando de campo."},
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial["data_hora"] = timezone.localtime(self.instance.data_hora)
+
+
+PAPEIS_ROTULOS = (
+    (TipoUsuario.TORCEDOR, "Torcedor"),
+    (TipoUsuario.RESPONSAVEL_CONSULADO, "Embaixador (consulado)"),
+    (TipoUsuario.RESPONSAVEL_ALIADO, "Lojista (aliado)"),
+    (TipoUsuario.ADMIN, "Administrador"),
+)
+
+
+class PapelForm(forms.Form):
+    tipo_usuario = forms.ChoiceField(label="Papel", choices=PAPEIS_ROTULOS)

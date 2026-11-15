@@ -1,0 +1,60 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Meus negócios · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <a class="voltar" href="{% url 'web:aliados' %}"><span class="icon">arrow_back</span>Vitrine da torcida</a>
+  <div class="secao secao--acao secao--titulo">
+    <h1 class="titulo-pagina">Meus negócios</h1>
+    {% if pode_cadastrar %}
+    <a class="botao botao--compacto" href="{% url 'web:novo-negocio' %}"><span class="icon">add_business</span>Cadastrar negócio</a>
+    {% endif %}
+  </div>
+  <p class="apoio">Divulgue o seu negócio na Vitrine da Torcida. {% if not user.is_admin %}Cada cadastro passa pela análise da administração antes de aparecer para os torcedores.{% endif %}</p>
+
+  {% for n in negocios %}
+  <article class="card negocio">
+    <div class="negocio__foto">
+      {% if n.foto %}<img src="{{ n.foto.url }}" alt="Foto de {{ n.nome_negocio }}" loading="lazy">{% else %}<span class="icon">{{ n.categoria|icone_categoria }}</span>{% endif %}
+    </div>
+    <div class="negocio__corpo">
+      <h3>{{ n.nome_negocio }}</h3>
+      <div class="pills">
+        <span class="pill"><span class="icon">{{ n.categoria|icone_categoria }}</span>{{ n.get_categoria_display }}</span>
+        {% if n.aprovado %}
+          <span class="pill"><span class="icon">check</span>Na vitrine</span>
+          {% if n.selo_verificado %}<span class="pill pill--vermelho"><span class="icon">verified</span>Verificado</span>{% endif %}
+        {% elif n.status_aprovacao == "REJEITADO" %}
+          <span class="pill pill--preto"><span class="icon">block</span>Recusado</span>
+        {% else %}
+          <span class="pill"><span class="icon">hourglass_top</span>Em análise</span>
+        {% endif %}
+      </div>
+      <p class="apoio negocio__descricao">{{ n.descricao }}</p>
+      {% if n.status_aprovacao == "REJEITADO" %}
+      <p class="apoio pequeno"><strong>Recusado pela administração{% if n.motivo_rejeicao %}:{% else %}.{% endif %}</strong> {{ n.motivo_rejeicao }} Corrija os dados e salve para enviar de novo.</p>
+      {% endif %}
+      <p class="apoio pequeno negocio__links">
+        <span class="icon">photo_camera</span>{% if n.link_instagram %}<a href="{{ n.link_instagram }}" target="_blank" rel="noopener">Instagram</a>{% else %}Sem Instagram{% endif %}
+        <span class="icon">chat</span>{% if n.link_whatsapp %}<a href="{{ n.link_whatsapp }}" target="_blank" rel="noopener">WhatsApp</a>{% else %}Sem WhatsApp{% endif %}
+      </p>
+    </div>
+    <div class="negocio__acoes">
+      <a class="botao-texto" href="{% url 'web:editar-negocio' n.pk %}"><span class="icon">edit</span>Editar</a>
+      <form method="post" action="{% url 'web:excluir-negocio' n.pk %}" data-confirmar="Excluir {{ n.nome_negocio }}? Ele sai da Vitrine da Torcida e não dá para desfazer.">
+        {% csrf_token %}
+        <button type="submit" class="botao-texto"><span class="icon">delete</span>Excluir</button>
+      </form>
+    </div>
+  </article>
+  {% empty %}
+    {% include "web/_vazio.html" with icone="storefront" titulo="Você ainda não cadastrou nenhum negócio" mensagem="Tem um bar, loja ou serviço? Cadastre e apareça para toda a torcida tricolor." %}
+    <p class="centro"><a class="botao botao--compacto" href="{% url 'web:novo-negocio' %}"><span class="icon">add_business</span>Cadastrar negócio</a></p>
+  {% endfor %}
+
+  {% if negocios and not pode_cadastrar %}
+  <p class="apoio pequeno nota-painel">Você chegou ao limite de {{ maximo }} negócios por conta. Exclua um para cadastrar outro.</p>
+  {% endif %}
+</div>
+{% endblock %}

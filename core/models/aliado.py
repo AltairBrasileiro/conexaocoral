@@ -5,7 +5,10 @@ from django.db.models import Q
 
 from core.models.base import AprovavelModel
 from core.models.choices import CategoriaAliado, StatusAprovacao
-from core.validators import validar_link_instagram, validar_link_whatsapp
+from core.validators import (
+    upload_foto_aliado, validar_extensao_imagem, validar_link_instagram, validar_link_whatsapp,
+    validar_tamanho_imagem,
+)
 
 
 class Aliado(AprovavelModel):
@@ -17,7 +20,14 @@ class Aliado(AprovavelModel):
     descricao = models.TextField("descrição", blank=True)
     link_instagram = models.URLField("link do Instagram", blank=True, validators=[validar_link_instagram])
     link_whatsapp = models.URLField("link do WhatsApp", blank=True, validators=[validar_link_whatsapp])
+    # Foto que apresenta o negócio na Vitrine da Torcida (opcional).
+    foto = models.ImageField(
+        "foto do negócio", upload_to=upload_foto_aliado, blank=True,
+        validators=[validar_extensao_imagem, validar_tamanho_imagem],
+    )
     selo_verificado = models.BooleanField("selo verificado", default=False)
+    # Preenchido pelo administrador ao recusar o cadastro (o dono vê em "Meus negócios").
+    motivo_rejeicao = models.TextField("motivo da rejeição", blank=True)
 
     class Meta:
         verbose_name = "aliado"
@@ -33,3 +43,7 @@ class Aliado(AprovavelModel):
 
     def __str__(self) -> str:
         return self.nome_negocio
+
+    @property
+    def foto_url(self) -> str:
+        return self.foto.url if self.foto else ""

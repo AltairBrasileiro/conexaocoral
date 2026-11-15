@@ -276,7 +276,6 @@ def executar(r: Roteiro) -> None:
         "link_instagram": "https://instagram.com/camisasdocoral",
         "link_whatsapp": "https://wa.me/5583999999999",
     }
-    r.status("Torcedor não cadastra aliado", torcedor.post(f"{API}/aliados/", dados_aliado), 403)
     r.status("Link de Instagram inválido é recusado",
              lojista.post(f"{API}/aliados/", {**dados_aliado, "link_instagram": "https://exemplo.com/x"}), 400)
     resposta = lojista.post(f"{API}/aliados/", dados_aliado)

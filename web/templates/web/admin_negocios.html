@@ -1,0 +1,98 @@
+{% extends "web/app.html" %}
+{% load coral %}
+{% block titulo %}Negócios · Painel · Conexão Coral{% endblock %}
+
+{% block conteudo %}
+<div class="pagina pagina--media">
+  <h1 class="titulo-pagina">Painel do Administrador</h1>
+  {% include "web/_painel_abas.html" %}
+
+  <h2 class="secao">Negócios aguardando análise <span class="pill">{{ pendentes|length }}</span></h2>
+  {% for n in pendentes %}
+  <article class="card solicitacao">
+    <header class="solicitacao__topo">
+      <div>
+        <h3>{{ n.nome_negocio }}</h3>
+        <p class="apoio pequeno">{{ n.get_categoria_display }} · enviado em {{ n.criado_em|dia_hora }}</p>
+      </div>
+      <span class="pill"><span class="icon">hourglass_top</span>Aguardando</span>
+    </header>
+    {% if n.foto %}
+    <a class="solicitacao__foto" href="{{ n.foto.url }}" target="_blank" rel="noopener" title="Abrir a foto do negócio">
+      <img src="{{ n.foto.url }}" alt="Foto enviada pelo lojista" loading="lazy">
+    </a>
+    {% endif %}
+    <dl class="dados dados--compacto">
+      <div><dt><span class="icon">person</span>Responsável</dt><dd>{{ n.usuario.nome }} · {{ n.usuario.email }}{% if n.usuario.telefone %} · {{ n.usuario.telefone }}{% endif %} ({{ n.usuario|papel }})</dd></div>
+      <div><dt><span class="icon">info</span>Descrição</dt><dd>{{ n.descricao|default:"Não informada"|linebreaksbr }}</dd></div>
+      <div><dt><span class="icon">photo_camera</span>Instagram</dt><dd>{% if n.link_instagram %}<a href="{{ n.link_instagram }}" target="_blank" rel="noopener">{{ n.link_instagram }}</a>{% else %}Não informado{% endif %}</dd></div>
+      <div><dt><span class="icon">chat</span>WhatsApp</dt><dd>{% if n.link_whatsapp %}<a href="{{ n.link_whatsapp }}" target="_blank" rel="noopener">{{ n.link_whatsapp }}</a>{% else %}Não informado{% endif %}</dd></div>
+    </dl>
+    <div class="solicitacao__acoes">
+      <form method="post" action="{% url 'web:admin-moderar-negocio' n.pk %}">
+        {% csrf_token %}
+        <button type="submit" name="acao" value="aprovar" class="botao botao--compacto"><span class="icon">check</span>Aprovar</button>
+      </form>
+      <details class="recusa">
+        <summary class="botao botao--contorno botao--compacto"><span class="icon">close</span>Recusar</summary>
+        <form method="post" action="{% url 'web:admin-moderar-negocio' n.pk %}" class="recusa__form">
+          {% csrf_token %}
+          <div class="campo">
+            <label for="motivo-{{ n.pk }}">{{ form_rejeicao.motivo.label }}</label>
+            <textarea name="motivo" id="motivo-{{ n.pk }}" rows="2" placeholder="Ex.: link do Instagram não abre, descrição incompleta…"></textarea>
+          </div>
+          <button type="submit" name="acao" value="rejeitar" class="botao botao--perigo botao--compacto">Confirmar recusa</button>
+        </form>
+      </details>
+    </div>
+  </article>
+  {% empty %}
+    {% include "web/_vazio.html" with icone="task_alt" titulo="Nenhum negócio aguardando" mensagem="Quando alguém cadastrar ou editar um negócio, ele aparece aqui para análise." %}
+  {% endfor %}
+
+  <h2 class="secao">Negócios avaliados <span class="pill">{{ avaliados|length }}</span></h2>
+  <form method="get" class="filtros" data-auto-enviar>
+    <label class="campo-busca">
+      <span class="icon">search</span>
+      <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por negócio, responsável ou e-mail" aria-label="Buscar negócio">
+    </label>
+  </form>
+  {% if avaliados %}
+  <ul class="card membros lista-admin">
+    {% for n in avaliados %}
+    <li class="membro">
+      <span class="icon">{{ n.categoria|icone_categoria }}</span>
+      <div class="membro__info">
+        <strong>{{ n.nome_negocio }}</strong>
+        <small class="apoio">{{ n.get_categoria_display }} · {{ n.usuario.nome }} · {{ n.usuario.email }}</small>
+        {% if n.motivo_rejeicao %}<small class="apoio">Motivo da recusa: {{ n.motivo_rejeicao }}</small>{% endif %}
+      </div>
+      {% if n.aprovado %}
+        {% if n.selo_verificado %}<span class="pill pill--vermelho"><span class="icon">verified</span>Verificado</span>{% else %}<span class="pill"><span class="icon">check</span>Na vitrine</span>{% endif %}
+      {% else %}
+        <span class="pill pill--preto"><span class="icon">block</span>Recusado</span>
+      {% endif %}
+      <form method="post" action="{% url 'web:admin-moderar-negocio' n.pk %}" class="lista-admin__acoes">
+        {% csrf_token %}
+        <input type="hidden" name="proximo" value="{{ request.get_full_path }}">
+        {% if n.aprovado %}
+          {% if n.selo_verificado %}
+          <button type="submit" name="acao" value="tirar-selo" class="botao-texto"><span class="icon">remove_moderator</span>Tirar selo</button>
+          {% else %}
+          <button type="submit" name="acao" value="selo" class="botao-texto"><span class="icon">verified</span>Dar selo</button>
+          {% endif %}
+          <button type="submit" name="acao" value="rejeitar" class="botao-texto" title="Tirar da vitrine"><span class="icon">visibility_off</span>Tirar da vitrine</button>
+        {% else %}
+          <button type="submit" name="acao" value="aprovar" class="botao-texto"><span class="icon">check</span>Aprovar</button>
+        {% endif %}
+        <a class="botao-texto" href="{% url 'web:editar-negocio' n.pk %}"><span class="icon">edit</span>Editar</a>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="card linha"><span class="icon">storefront</span>{% if busca %}Nenhum negócio encontrado para “{{ busca }}”.{% else %}Nenhum negócio avaliado ainda.{% endif %}</div>
+  {% endif %}
+  <p class="centro nota-painel"><a class="botao botao--contorno botao--compacto" href="{% url 'web:novo-negocio' %}"><span class="icon">add_business</span>Cadastrar negócio pela administração</a></p>
+</div>
+{% endblock %}
