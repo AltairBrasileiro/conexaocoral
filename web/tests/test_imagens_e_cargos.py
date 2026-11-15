@@ -50,7 +50,8 @@ class ImagemEventoTests(TestCase):
         self.assertEqual(len(fotos), 3)
         self.assertEqual([f.ordem for f in fotos], [0, 1, 2])
         self.assertTrue(all(f.imagem.name.startswith("eventos/") for f in fotos))
-        self.assertNotIn("a.png", fotos[0].imagem.name)  # nome aleatório, não o do arquivo enviado
+        # Nome aleatório, não o do arquivo enviado (o nome sorteado pode terminar em "a", daí o "/").
+        self.assertFalse(fotos[0].imagem.name.endswith("/a.png"))
         self.client.force_login(criar_usuario())
         pagina = self.client.get(reverse("web:consulado", args=[self.consulado.pk]))
         for foto in fotos:

@@ -1,0 +1,13 @@
+{% comment %}
+  Campo de senha com o botão de olho: o usuário escolhe ver ou esconder o que digita.
+  Parâmetro: campo (BoundField).
+{% endcomment %}
+<div class="campo campo--senha{% if campo.errors %} campo--erro{% endif %}">
+  <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  {{ campo }}
+  <button type="button" class="campo__acao" data-mostrar-senha="{{ campo.id_for_label }}" aria-label="Mostrar senha" title="Mostrar senha">
+    <span class="icon">visibility</span>
+  </button>
+  {% if campo.help_text %}<small class="campo__ajuda">{{ campo.help_text }}</small>{% endif %}
+  {% for erro in campo.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+</div>

@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, SetPasswordForm
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 
@@ -360,3 +360,126 @@ class CaronaForm(forms.Form):
             "data_hora_encontro": timezone.localtime(carona.data_hora_encontro),
             "expira_em": timezone.localtime(carona.expira_em),
         })
+
+
+# ------------------------------------------------------------- minha conta
+class PerfilForm(forms.Form):
+    """Dados pessoais do usuário (as regras ficam no ``UsuarioService``)."""
+
+    nome = forms.CharField(
+        label="Nome", max_length=150,
+        widget=forms.TextInput(attrs={"autocomplete": "name"}),
+        error_messages={"required": "Informe o seu nome."},
+    )
+    data_nascimento = forms.DateField(
+        label="Data de nascimento",
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}, format="%Y-%m-%d"),
+        error_messages={"required": "Informe a sua data de nascimento.", "invalid": "Informe uma data válida."},
+    )
+    email = forms.EmailField(
+        label="E-mail",
+        help_text="É o e-mail que você usa para entrar.",
+        widget=forms.EmailInput(attrs={"autocomplete": "email"}),
+        error_messages={"required": "Informe o seu e-mail.", "invalid": "Informe um e-mail válido."},
+    )
+    telefone = forms.CharField(
+        label="Telefone (opcional)", max_length=20, required=False,
+        widget=forms.TextInput(attrs={"inputmode": "tel", "autocomplete": "tel", "placeholder": "+5581999999999"}),
+    )
+    cpf = forms.CharField(
+        label="CPF (opcional)", max_length=14, required=False,
+        widget=forms.TextInput(attrs={"inputmode": "numeric", "placeholder": "000.000.000-00"}),
+    )
+    endereco = forms.CharField(
+        label="Endereço (opcional)", max_length=255, required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "street-address", "placeholder": "Rua, número, bairro, cidade - UF"}),
+    )
+
+    @classmethod
+    def para_usuario(cls, usuario, dados=None) -> "PerfilForm":
+        return cls(dados, initial={
+            "nome": usuario.nome,
+            "data_nascimento": usuario.data_nascimento,
+            "email": usuario.email,
+            "telefone": usuario.telefone,
+            "cpf": usuario.cpf_formatado,
+            "endereco": usuario.endereco,
+        })
+
+    def clean_telefone(self) -> str:
+        # Aceita "(81) 99999-9999": guarda só os dígitos (e o "+" inicial, se houver).
+        valor = self.cleaned_data["telefone"].strip()
+        digitos = "".join(c for c in valor if c.isdigit())
+        return ("+" if valor.startswith("+") else "") + digitos if digitos else ""
+
+
+class FotoPerfilForm(forms.Form):
+    foto = forms.ImageField(
+        label="Foto do perfil",
+        help_text=f"JPG, PNG ou WebP de até {TAMANHO_MAXIMO_IMAGEM_MB} MB.",
+        error_messages={"required": "Escolha a foto que vai enviar."},
+        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+    def clean_foto(self):
+        return _validar_upload_imagem(self.cleaned_data.get("foto"))
+
+
+def _campo_senha(rotulo: str, autocomplete: str, **extra) -> forms.CharField:
+    return forms.CharField(
+        label=rotulo, strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": autocomplete}),
+        **extra,
+    )
+
+
+class TrocarSenhaForm(forms.Form):
+    """Troca de senha por quem está logado: a senha atual é obrigatória."""
+
+    senha_atual = _campo_senha(
+        "Senha atual", "current-password", error_messages={"required": "Informe a sua senha atual."},
+    )
+    nova_senha = _campo_senha(
+        "Nova senha", "new-password",
+        help_text="Pelo menos 8 caracteres; não pode ser só números nem parecida com o seu nome ou e-mail.",
+        error_messages={"required": "Informe a nova senha."},
+    )
+    confirmacao = _campo_senha(
+        "Confirme a nova senha", "new-password", error_messages={"required": "Repita a nova senha."},
+    )
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get("nova_senha") and dados.get("confirmacao") and dados["nova_senha"] != dados["confirmacao"]:
+            self.add_error("confirmacao", "As senhas não conferem.")
+        return dados
+
+
+class EsqueciSenhaForm(PasswordResetForm):
+    """ "Encontre sua conta": envia por e-mail o link para cadastrar uma nova senha."""
+
+    email = forms.EmailField(
+        label="E-mail da sua conta",
+        max_length=254,
+        widget=forms.EmailInput(attrs={"autocomplete": "email", "autofocus": True, "placeholder": "voce@email.com"}),
+        error_messages={"required": "Informe o e-mail da sua conta.", "invalid": "Informe um e-mail válido."},
+    )
+
+    def clean_email(self) -> str:
+        return self.cleaned_data["email"].strip().lower()
+
+
+class NovaSenhaForm(SetPasswordForm):
+    """Nova senha cadastrada pelo link recebido por e-mail."""
+
+    error_messages = {**SetPasswordForm.error_messages, "password_mismatch": "As senhas não conferem."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "Nova senha"
+        self.fields["new_password1"].help_text = (
+            "Pelo menos 8 caracteres; não pode ser só números nem parecida com o seu nome ou e-mail."
+        )
+        self.fields["new_password2"].label = "Confirme a nova senha"
+        self.fields["new_password2"].help_text = ""

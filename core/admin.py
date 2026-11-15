@@ -52,7 +52,7 @@ class UsuarioAdmin(UserAdmin):
     readonly_fields = ("criado_em", "last_login")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Dados pessoais", {"fields": ("nome", "telefone", "tipo_usuario")}),
+        ("Dados pessoais", {"fields": ("nome", "data_nascimento", "cpf", "telefone", "endereco", "foto", "tipo_usuario")}),
         ("Permissões", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Datas", {"fields": ("last_login", "criado_em")}),
     )

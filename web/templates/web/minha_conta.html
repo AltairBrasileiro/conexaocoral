@@ -8,6 +8,71 @@
   <h1 class="titulo-pagina">Minha conta</h1>
   <p class="apoio">{{ user.nome }} · {{ user.email }} · {{ user|papel }}</p>
 
+  <h2 class="secao" id="dados">Meus dados</h2>
+  {% if dados_incompletos %}
+  <div class="card linha"><span class="icon">info</span><span>Complete o seu cadastro: falta informar a <strong>data de nascimento</strong>.</span></div>
+  {% endif %}
+
+  <div class="card card--padding conta-foto">
+    <span class="avatar">{% if user.foto %}<img src="{{ user.foto.url }}" alt="Sua foto do perfil">{% else %}{{ user.nome|inicial }}{% endif %}</span>
+    <div class="conta-foto__corpo">
+      <strong>Foto do perfil</strong>
+      <small class="apoio">Opcional. {{ foto_form.foto.help_text }}</small>
+      <form method="post" action="{% url 'web:foto-perfil' %}" enctype="multipart/form-data" class="conta-foto__form">
+        {% csrf_token %}
+        <div class="campo{% if foto_form.foto.errors %} campo--erro{% endif %}">
+          <label for="{{ foto_form.foto.id_for_label }}" class="sr-only">Escolher foto</label>
+          {{ foto_form.foto }}
+          {% for erro in foto_form.foto.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+        </div>
+        <button type="submit" class="botao botao--compacto"><span class="icon">upload</span>{% if user.foto %}Trocar foto{% else %}Enviar foto{% endif %}</button>
+      </form>
+      {% if user.foto %}
+      <form method="post" action="{% url 'web:remover-foto-perfil' %}" data-confirmar="Remover a sua foto do perfil?">
+        {% csrf_token %}
+        <button type="submit" class="botao-texto"><span class="icon">delete</span>Remover foto</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'web:atualizar-perfil' %}" class="card card--padding formulario conta-dados" novalidate>
+    {% csrf_token %}
+    {% if perfil_form.non_field_errors %}<div class="alerta">{% for erro in perfil_form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+    {% include "web/_campo.html" with campo=perfil_form.nome %}
+    <div class="formulario__linha">
+      {% include "web/_campo.html" with campo=perfil_form.email %}
+      {% include "web/_campo.html" with campo=perfil_form.data_nascimento %}
+    </div>
+    <div class="formulario__linha">
+      {% include "web/_campo.html" with campo=perfil_form.telefone %}
+      {% include "web/_campo.html" with campo=perfil_form.cpf %}
+    </div>
+    {% include "web/_campo.html" with campo=perfil_form.endereco %}
+    <div class="formulario__acoes">
+      <button type="submit" class="botao botao--compacto"><span class="icon">save</span>Salvar dados</button>
+    </div>
+  </form>
+
+  <details class="card expansivel" id="senha"{% if senha_form.errors %} open{% endif %}>
+    <summary><span class="icon">lock</span><span>Trocar senha</span><span class="icon expansivel__seta">expand_more</span></summary>
+    <form method="post" action="{% url 'web:trocar-senha' %}" class="card--padding formulario" novalidate>
+      {% csrf_token %}
+      {% if senha_form.non_field_errors %}<div class="alerta">{% for erro in senha_form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+      <div class="senha-atual">
+        {% include "web/_campo_senha.html" with campo=senha_form.senha_atual %}
+        <a class="botao botao--contorno botao--compacto" href="{% url 'web:senha-esqueci' %}"><span class="icon">help</span>Esqueci a senha</a>
+      </div>
+      <div class="formulario__linha formulario__linha--iguais">
+        {% include "web/_campo_senha.html" with campo=senha_form.nova_senha %}
+        {% include "web/_campo_senha.html" with campo=senha_form.confirmacao %}
+      </div>
+      <div class="formulario__acoes">
+        <button type="submit" class="botao botao--compacto"><span class="icon">key</span>Salvar nova senha</button>
+      </div>
+    </form>
+  </details>
+
   <div class="secao secao--acao">
     <h2>Meus consulados <span class="pill">{{ filiacoes|length }}</span></h2>
     <a class="botao-texto" href="{% url 'web:consulados' %}"><span class="icon">map</span>Encontrar consulados</a>

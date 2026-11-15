@@ -147,6 +147,21 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# E-mail: usado no "esqueci a senha". Sem EMAIL_HOST configurado, as mensagens
+# são só impressas no terminal do servidor (bom para desenvolvimento).
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Conexão Coral <nao-responda@conexaocoral.com.br>")
+# Validade do link de redefinição de senha (em segundos): 1 hora.
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 # ---------------------------------------------------------------------------
 # Internacionalização
 # ---------------------------------------------------------------------------

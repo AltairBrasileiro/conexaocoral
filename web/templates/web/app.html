@@ -29,7 +29,7 @@
       {% endif %}
     </nav>
     <details class="perfil">
-      <summary aria-label="Minha conta" title="Minha conta">{{ user.nome|inicial }}</summary>
+      <summary aria-label="Minha conta" title="Minha conta">{% if user.foto %}<img src="{{ user.foto.url }}" alt="">{% else %}{{ user.nome|inicial }}{% endif %}</summary>
       <div class="perfil__menu">
         <strong>{{ user.nome }}</strong>
         <small>{{ user|papel }}</small>

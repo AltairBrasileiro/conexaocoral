@@ -1,0 +1,14 @@
+{% extends "web/_senha_base.html" %}
+{% block titulo %}Confira seu e-mail · Conexão Coral{% endblock %}
+{% block senha %}
+<div class="login__form">
+  <h2>Confira seu e-mail</h2>
+  <p class="apoio">Se houver uma conta com o e-mail informado, enviamos um link para cadastrar uma nova senha. Ele vale por 1 hora e só pode ser usado uma vez.</p>
+  <p class="apoio texto">Não chegou? Veja a caixa de spam ou peça o link de novo.</p>
+  <a class="botao" href="{% url 'web:senha-esqueci' %}">Pedir o link de novo</a>
+  <p class="login__link">
+    {% if user.is_authenticated %}<a href="{% url 'web:minha-conta' %}">Voltar para Minha conta</a>
+    {% else %}<a href="{% url 'web:login' %}">Voltar para o login</a>{% endif %}
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "web/_senha_base.html" %}
+{% block titulo %}Esqueci a senha · Conexão Coral{% endblock %}
+{% block senha %}
+<form method="post" class="login__form" novalidate>
+  {% csrf_token %}
+  <h2>Encontre sua conta</h2>
+  <p class="apoio">Informe o e-mail da sua conta. Enviaremos um link para você cadastrar uma nova senha.</p>
+  {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+  <div class="campo campo--icone{% if form.email.errors %} campo--erro{% endif %}">
+    <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+    <span class="icon">mail</span>
+    {{ form.email }}
+    {% for erro in form.email.errors %}<small class="campo__msg">{{ erro }}</small>{% endfor %}
+  </div>
+  <button type="submit" class="botao">Continuar</button>
+  <p class="login__link">
+    {% if user.is_authenticated %}<a href="{% url 'web:minha-conta' %}">Voltar para Minha conta</a>
+    {% else %}<a href="{% url 'web:login' %}">Voltar para o login</a>{% endif %}
+  </p>
+</form>
+{% endblock %}

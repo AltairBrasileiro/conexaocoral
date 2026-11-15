@@ -15,6 +15,12 @@ class UsuarioRepository(BaseRepository[Usuario]):
             qs = qs.exclude(pk=exceto_id)
         return qs.exists()
 
+    def cpf_em_uso(self, cpf: str, *, exceto_id: int | None = None) -> bool:
+        qs = self.get_queryset().filter(cpf=cpf)
+        if exceto_id is not None:
+            qs = qs.exclude(pk=exceto_id)
+        return qs.exists()
+
     def criar_usuario(self, *, email: str, password: str, **dados: Any) -> Usuario:
         # Usa o manager para garantir hash de senha e normalização de e-mail.
         return Usuario.objects.create_user(email=email, password=password, **dados)

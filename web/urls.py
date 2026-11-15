@@ -17,7 +17,10 @@ Rotas da interface web (templates Django + login por sessão).
     consulados/{id}/entrar/ | sair/         POST pede para ser membro / sai do consulado
     pedidos-entrada/{id}/cancelar/          POST cancela o próprio pedido de entrada
     painel/pedidos-entrada/{id}/responder/  POST embaixador aprova ou recusa a entrada
-    conta/                                  minha conta: consulados, pedidos e eventos
+    conta/                                  minha conta: dados pessoais, foto, senha, consulados, pedidos e eventos
+    conta/dados/ | foto/ | foto/remover/ | senha/  POST atualiza os dados, a foto e a senha
+    senha/esqueci/ | esqueci/enviado/       "esqueci a senha": pede o link por e-mail
+    senha/redefinir/{uid}/{token}/ | senha/redefinida/  cadastra a nova senha pelo link
     eventos/{id}/desmarcar/                 POST o torcedor desmarca a própria presença
     painel/eventos/{id}/confirmados/        lista de confirmados (embaixador, membro com cargo, admin)
     painel/eventos/{id}/confirmados.pdf     a mesma lista em PDF
@@ -66,6 +69,14 @@ urlpatterns = [
     path("pedidos-entrada/<int:pk>/cancelar/", views.cancelar_pedido_entrada, name="cancelar-pedido-entrada"),
     path("painel/pedidos-entrada/<int:pk>/responder/", views.responder_pedido_entrada, name="responder-pedido-entrada"),
     path("conta/", views.minha_conta, name="minha-conta"),
+    path("conta/dados/", views.atualizar_perfil, name="atualizar-perfil"),
+    path("conta/foto/", views.foto_perfil, name="foto-perfil"),
+    path("conta/foto/remover/", views.remover_foto_perfil, name="remover-foto-perfil"),
+    path("conta/senha/", views.trocar_senha, name="trocar-senha"),
+    path("senha/esqueci/", views.EsqueciSenhaView.as_view(), name="senha-esqueci"),
+    path("senha/esqueci/enviado/", views.SenhaEnviadaView.as_view(), name="senha-enviada"),
+    path("senha/redefinir/<uidb64>/<token>/", views.RedefinirSenhaView.as_view(), name="senha-redefinir"),
+    path("senha/redefinida/", views.SenhaRedefinidaView.as_view(), name="senha-redefinida"),
     path("eventos/<int:pk>/desmarcar/", views.desmarcar_presenca, name="desmarcar-presenca"),
     path("painel/eventos/<int:pk>/confirmados/", views.presencas_evento, name="presencas-evento"),
     path("painel/eventos/<int:pk>/confirmados.pdf", views.presencas_evento_pdf, name="presencas-evento-pdf"),

@@ -97,6 +97,14 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   aceitam confirmação) para membros. O torcedor desmarca a presença até o início do evento. O
   embaixador, os membros com cargo e o admin veem a lista de confirmados, retiram pessoas (que não
   conseguem confirmar de novo, até serem readmitidas) e exportam a lista em PDF.
+- **Minha conta**: cada usuário atualiza os próprios dados (nome, data de nascimento e e-mail
+  obrigatórios; telefone, CPF e endereço opcionais), envia, troca ou remove a foto do perfil e troca a
+  senha informando a atual. O CPF e o e-mail não podem repetir os de outra conta. As regras ficam no
+  `UsuarioService`.
+- **Esqueci a senha**: na tela de login e em "Minha conta". O usuário informa o e-mail e recebe um
+  link de uso único, válido por 1 hora, para cadastrar a nova senha. Trocar ou redefinir a senha
+  encerra as sessões do aplicativo. O envio usa as variáveis `EMAIL_*` do `.env`; sem `EMAIL_HOST`,
+  o e-mail é só impresso no terminal do servidor (desenvolvimento).
 - **Carona Coral**: exclusiva dos membros de cada consulado. Qualquer membro oferece carona; só os
   membros daquele consulado veem e reservam vaga. Membros de outros consulados (e quem saiu) não
   oferecem nem veem as caronas dele.

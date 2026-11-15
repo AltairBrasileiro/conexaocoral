@@ -16,6 +16,21 @@ validar_telefone = RegexValidator(
 )
 
 
+def somente_digitos(valor: str | None) -> str:
+    return "".join(c for c in (valor or "") if c.isdigit())
+
+
+def validar_cpf(valor: str) -> None:
+    """CPF com 11 dígitos e dígitos verificadores corretos (aceita pontos e traço)."""
+    cpf = somente_digitos(valor)
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        raise ValidationError("Informe um CPF válido, com 11 dígitos.")
+    for posicao in (9, 10):
+        soma = sum(int(cpf[i]) * (posicao + 1 - i) for i in range(posicao))
+        if (soma * 10) % 11 % 10 != int(cpf[posicao]):
+            raise ValidationError("Informe um CPF válido, com 11 dígitos.")
+
+
 def _dominio(url: str) -> str:
     return (urlparse(url).hostname or "").lower()
 
@@ -56,6 +71,10 @@ def upload_foto_consulado(instancia, nome_original: str) -> str:
 
 def upload_imagem_evento(instancia, nome_original: str) -> str:
     return _caminho_aleatorio("eventos", nome_original)
+
+
+def upload_foto_usuario(instancia, nome_original: str) -> str:
+    return _caminho_aleatorio("usuarios", nome_original)
 
 
 def upload_captura_reporte(instancia, nome_original: str) -> str:

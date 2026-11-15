@@ -1,0 +1,14 @@
+{% extends "web/base.html" %}
+{% comment %} Casca das telas de "esqueci a senha": mesma cara da tela de login. {% endcomment %}
+{% block body_class %}pagina-login{% endblock %}
+{% block corpo %}
+<header class="login__topo login__topo--compacto">
+  {% include "web/_emblema.html" with tamanho=56 %}
+  <h1>Conexão Coral</h1>
+</header>
+<div class="faixa faixa--grossa" aria-hidden="true"></div>
+
+<main class="login__corpo">
+  {% block senha %}{% endblock %}
+</main>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "web/_senha_base.html" %}
+{% block titulo %}Senha alterada · Conexão Coral{% endblock %}
+{% block senha %}
+<div class="login__form">
+  <h2>Senha alterada</h2>
+  <p class="apoio">Sua nova senha já está valendo. No aplicativo e nos outros aparelhos será preciso entrar de novo.</p>
+  <a class="botao" href="{% url 'web:login' %}">Entrar</a>
+</div>
+{% endblock %}

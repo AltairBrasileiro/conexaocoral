@@ -14,6 +14,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -21,7 +22,7 @@ from django.db.models import Prefetch, Q
 from django.db.models.functions import Lower
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
@@ -36,10 +37,11 @@ from core.repositories import (
     AliadoRepository, CaronaRepository, ConsuladoRepository, EventoRepository, FotoConsuladoRepository,
     MembroConsuladoRepository, ReservaCaronaRepository, SolicitacaoMembroRepository,
 )
-from core.services import CaronaService, ConsuladoService, EventoService, ReporteService
+from core.services import CaronaService, ConsuladoService, EventoService, ReporteService, UsuarioService
 from web.forms import (
-    CARGOS, OUTRO_CARGO, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EventoForm, FotoConsuladoForm, LegendaFotoForm,
-    NovoMembroForm, RejeicaoForm, ReporteForm, SolicitacaoConsuladoForm,
+    CARGOS, OUTRO_CARGO, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EsqueciSenhaForm, EventoForm,
+    FotoConsuladoForm, FotoPerfilForm, LegendaFotoForm, NovaSenhaForm, NovoMembroForm, PerfilForm, RejeicaoForm,
+    ReporteForm, SolicitacaoConsuladoForm, TrocarSenhaForm,
 )
 from web.pdf import lista_da_carona, lista_de_presenca
 from web.pix import codigo_pix, qr_svg
@@ -668,9 +670,12 @@ def responder_pedido_entrada(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # --------------------------------------------------------------- minha conta
-@login_required
-def minha_conta(request: HttpRequest) -> HttpResponse:
-    """Consulados de que o torcedor é membro (entrar/sair), pedidos e eventos com presença confirmada."""
+def _pagina_da_conta(request: HttpRequest, **formularios: Any) -> HttpResponse:
+    """
+    Minha conta: dados pessoais, foto e senha; depois os consulados, pedidos,
+    eventos e caronas do usuário. ``formularios`` traz o formulário que voltou
+    com erro (os demais são montados em branco).
+    """
     agora = timezone.now()
     filiacoes = list(
         MembroConsulado.objects.filter(usuario=request.user)
@@ -700,6 +705,10 @@ def minha_conta(request: HttpRequest) -> HttpResponse:
     )
     return render(request, "web/minha_conta.html", {
         "aba": "conta",
+        "perfil_form": formularios.get("perfil_form") or PerfilForm.para_usuario(request.user),
+        "foto_form": formularios.get("foto_form") or FotoPerfilForm(),
+        "senha_form": formularios.get("senha_form") or TrocarSenhaForm(),
+        "dados_incompletos": request.user.data_nascimento is None,
         "reservas_carona": reservas_carona,
         "caronas_oferecidas": caronas_oferecidas,
         "filiacoes": filiacoes,
@@ -708,6 +717,106 @@ def minha_conta(request: HttpRequest) -> HttpResponse:
         "eventos_anteriores": [p for p in reversed(presencas) if p.evento.data_hora_fim < agora],
         "agora": agora,
     })
+
+
+@login_required
+def minha_conta(request: HttpRequest) -> HttpResponse:
+    return _pagina_da_conta(request)
+
+
+def _erro_do_servico_no_form(form, erro: RegraNegocioError) -> None:
+    form.add_error(erro.campo if erro.campo in form.fields else None, erro.mensagem)
+
+
+@login_required
+@require_POST
+def atualizar_perfil(request: HttpRequest) -> HttpResponse:
+    form = PerfilForm.para_usuario(request.user, request.POST)
+    if form.is_valid():
+        try:
+            UsuarioService().atualizar_perfil(request.user, **form.cleaned_data)
+        except RegraNegocioError as erro:
+            _erro_do_servico_no_form(form, erro)
+        else:
+            messages.success(request, "Seus dados foram atualizados.")
+            return redirect("web:minha-conta")
+    return _pagina_da_conta(request, perfil_form=form)
+
+
+@login_required
+@require_POST
+def foto_perfil(request: HttpRequest) -> HttpResponse:
+    """Envia a foto do perfil ou troca a atual."""
+    form = FotoPerfilForm(request.POST, request.FILES)
+    if form.is_valid():
+        UsuarioService().definir_foto(request.user, form.cleaned_data["foto"])
+        messages.success(request, "Foto do perfil atualizada.")
+        return redirect("web:minha-conta")
+    return _pagina_da_conta(request, foto_form=form)
+
+
+@login_required
+@require_POST
+def remover_foto_perfil(request: HttpRequest) -> HttpResponse:
+    _executar(request, lambda: UsuarioService().remover_foto(request.user), "Foto do perfil removida.")
+    return redirect("web:minha-conta")
+
+
+@login_required
+@require_POST
+def trocar_senha(request: HttpRequest) -> HttpResponse:
+    form = TrocarSenhaForm(request.POST)
+    if form.is_valid():
+        try:
+            UsuarioService().trocar_senha(
+                request.user, senha_atual=form.cleaned_data["senha_atual"], nova_senha=form.cleaned_data["nova_senha"],
+            )
+        except RegraNegocioError as erro:
+            _erro_do_servico_no_form(form, erro)
+        else:
+            # A troca invalida as sessões; esta continua aberta para o usuário não cair no login.
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Senha alterada. Nos outros aparelhos será preciso entrar de novo.")
+            return redirect("web:minha-conta")
+    return _pagina_da_conta(request, senha_form=form)
+
+
+# --------------------------------------------------------- esqueci a senha
+class EsqueciSenhaView(auth_views.PasswordResetView):
+    """
+    "Encontre sua conta": envia por e-mail um link de uso único para cadastrar
+    uma nova senha. A resposta é a mesma exista ou não a conta, para não revelar
+    quais e-mails estão cadastrados.
+    """
+
+    template_name = "web/senha_esqueci.html"
+    form_class = EsqueciSenhaForm
+    email_template_name = "web/email/redefinir_senha.txt"
+    subject_template_name = "web/email/redefinir_senha_assunto.txt"
+    success_url = reverse_lazy("web:senha-enviada")
+
+    def get_initial(self) -> dict:
+        usuario = self.request.user
+        return {"email": usuario.email} if usuario.is_authenticated else {}
+
+
+class SenhaEnviadaView(auth_views.PasswordResetDoneView):
+    template_name = "web/senha_enviada.html"
+
+
+class RedefinirSenhaView(auth_views.PasswordResetConfirmView):
+    template_name = "web/senha_redefinir.html"
+    form_class = NovaSenhaForm
+    success_url = reverse_lazy("web:senha-redefinida")
+
+    def form_valid(self, form):
+        resposta = super().form_valid(form)
+        UsuarioService.encerrar_sessoes_do_app(form.user)
+        return resposta
+
+
+class SenhaRedefinidaView(auth_views.PasswordResetCompleteView):
+    template_name = "web/senha_redefinida.html"
 
 
 # ------------------------------------------------------------ fotos do consulado

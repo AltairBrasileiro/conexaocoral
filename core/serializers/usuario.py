@@ -6,18 +6,50 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from core.exceptions import RegraNegocioError
 from core.models import TipoUsuario, Usuario
 from core.serializers.base import ValidacaoServiceMixin
 from core.services import UsuarioService
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
-    """Perfil do próprio usuário (GET/PATCH em /usuarios/me/)."""
+    """
+    Perfil do próprio usuário (GET/PATCH em /usuarios/me/).
+
+    O e-mail, a foto e a senha são alterados pela interface web ("Minha conta");
+    aqui a foto vem só para exibição.
+    """
+
+    foto = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
-        fields = ("id", "nome", "email", "telefone", "tipo_usuario", "criado_em")
+        fields = (
+            "id", "nome", "email", "telefone", "data_nascimento", "cpf", "endereco", "foto",
+            "tipo_usuario", "criado_em",
+        )
         read_only_fields = ("id", "email", "tipo_usuario", "criado_em")
+        # A validação e a unicidade do CPF são feitas pelo serviço (aceita pontos e traço).
+        extra_kwargs = {"cpf": {"validators": [], "max_length": 14, "allow_blank": True}}
+
+    def get_foto(self, obj: Usuario) -> str:
+        if not obj.foto:
+            return ""
+        request = self.context.get("request")
+        return request.build_absolute_uri(obj.foto.url) if request else obj.foto.url
+
+    def validate_cpf(self, valor: str | None) -> str | None:
+        try:
+            return UsuarioService().normalizar_cpf(self.instance, valor)
+        except RegraNegocioError as erro:
+            raise serializers.ValidationError(erro.mensagem) from erro
+
+    def validate_data_nascimento(self, valor):
+        try:
+            UsuarioService().validar_data_nascimento(valor)
+        except RegraNegocioError as erro:
+            raise serializers.ValidationError(erro.mensagem) from erro
+        return valor
 
 
 class UsuarioAdminSerializer(serializers.ModelSerializer):

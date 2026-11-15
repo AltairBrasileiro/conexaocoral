@@ -7,7 +7,9 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 from core.models.choices import TipoUsuario
-from core.validators import validar_telefone
+from core.validators import (
+    upload_foto_usuario, validar_cpf, validar_extensao_imagem, validar_tamanho_imagem, validar_telefone,
+)
 
 
 class UsuarioManager(BaseUserManager):
@@ -57,6 +59,16 @@ class Usuario(AbstractUser):
     nome = models.CharField("nome", max_length=150)
     email = models.EmailField("e-mail", unique=True)
     telefone = models.CharField("telefone", max_length=16, blank=True, validators=[validar_telefone])
+    # Dados do perfil, preenchidos pelo próprio usuário em "Minha conta". A data de
+    # nascimento é obrigatória lá, mas fica vazia nas contas criadas antes dela existir.
+    data_nascimento = models.DateField("data de nascimento", null=True, blank=True)
+    # Só dígitos; None (e não "") quando não informado, para a unicidade valer só entre CPFs preenchidos.
+    cpf = models.CharField("CPF", max_length=11, null=True, blank=True, unique=True, validators=[validar_cpf])
+    endereco = models.CharField("endereço", max_length=255, blank=True)
+    foto = models.ImageField(
+        "foto do perfil", upload_to=upload_foto_usuario, blank=True,
+        validators=[validar_extensao_imagem, validar_tamanho_imagem],
+    )
     tipo_usuario = models.CharField(
         "tipo de usuário",
         max_length=25,
@@ -85,6 +97,15 @@ class Usuario(AbstractUser):
 
     def get_short_name(self) -> str:
         return self.nome.split()[0] if self.nome else self.email
+
+    @property
+    def foto_url(self) -> str:
+        return self.foto.url if self.foto else ""
+
+    @property
+    def cpf_formatado(self) -> str:
+        c = self.cpf or ""
+        return f"{c[:3]}.{c[3:6]}.{c[6:9]}-{c[9:]}" if len(c) == 11 else c
 
     # -- Atalhos de papel (usados nas permissões e serviços) ----------------
     @property

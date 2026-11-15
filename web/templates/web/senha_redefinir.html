@@ -1,0 +1,20 @@
+{% extends "web/_senha_base.html" %}
+{% block titulo %}Nova senha · Conexão Coral{% endblock %}
+{% block senha %}
+{% if validlink %}
+<form method="post" class="login__form" novalidate>
+  {% csrf_token %}
+  <h2>Cadastre uma nova senha</h2>
+  {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+  {% include "web/_campo_senha.html" with campo=form.new_password1 %}
+  {% include "web/_campo_senha.html" with campo=form.new_password2 %}
+  <button type="submit" class="botao">Salvar nova senha</button>
+</form>
+{% else %}
+<div class="login__form">
+  <h2>Link inválido ou expirado</h2>
+  <p class="apoio">Este link já foi usado ou passou do prazo de 1 hora. Peça um novo para cadastrar a sua senha.</p>
+  <a class="botao" href="{% url 'web:senha-esqueci' %}">Pedir um novo link</a>
+</div>
+{% endif %}
+{% endblock %}

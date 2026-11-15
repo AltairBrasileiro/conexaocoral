@@ -1,0 +1,14 @@
+{% autoescape off %}Olá, {{ user.get_short_name }}!
+
+Recebemos um pedido para cadastrar uma nova senha na sua conta do Conexão Coral ({{ email }}).
+
+Para escolher a nova senha, abra o link abaixo:
+
+{{ protocol }}://{{ domain }}{% url 'web:senha-redefinir' uidb64=uid token=token %}
+
+O link vale por 1 hora e só pode ser usado uma vez.
+
+Se não foi você quem pediu, ignore este e-mail: a sua senha continua a mesma.
+
+Conexão Coral
+{% endautoescape %}
