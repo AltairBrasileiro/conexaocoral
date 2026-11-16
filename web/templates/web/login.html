@@ -34,6 +34,7 @@
     <input type="hidden" name="next" value="{{ next }}">
     <button type="submit" class="botao">Entrar</button>
     <p class="login__link"><a href="{% url 'web:senha-esqueci' %}">Esqueci minha senha</a></p>
+    <p class="login__link">Ainda não tem conta? <a href="{% url 'web:cadastro' %}">Cadastre-se</a></p>
   </form>
 
   {% if contas_demo %}

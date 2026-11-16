@@ -14,7 +14,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import login, update_session_auth_hash
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -39,7 +39,7 @@ from core.repositories import (
 )
 from core.services import CaronaService, ConsuladoService, EventoService, ReporteService, UsuarioService
 from web.forms import (
-    CARGOS, OUTRO_CARGO, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EsqueciSenhaForm, EventoForm,
+    CARGOS, OUTRO_CARGO, CadastroForm, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EsqueciSenhaForm, EventoForm,
     FotoConsuladoForm, FotoPerfilForm, IconeConsuladoForm, LegendaFotoForm, NovaSenhaForm, NovoMembroForm, PerfilForm, RejeicaoForm,
     ReporteForm, SolicitacaoConsuladoForm, TrocarSenhaForm,
 )
@@ -187,6 +187,34 @@ class EntrarView(auth_views.LoginView):
 
 class SairView(auth_views.LogoutView):
     pass
+
+
+def cadastro(request: HttpRequest) -> HttpResponse:
+    """Cadastro de torcedor na tela inicial; a conta já entra logada."""
+    if request.user.is_authenticated:
+        return redirect("web:consulados")
+    form = CadastroForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        dados = form.cleaned_data
+        servico = UsuarioService()
+        try:
+            servico.validar_data_nascimento(dados["data_nascimento"])
+            if servico.repositorio.email_em_uso(dados["email"]):
+                raise RegraNegocioError("Já existe uma conta com este e-mail.", campo="email")
+            # Valida a senha contra nome e e-mail antes de criar a conta.
+            servico.validar_nova_senha(Usuario(nome=dados["nome"], email=dados["email"]), dados["senha"])
+            usuario = servico.registrar(
+                email=dados["email"], password=dados["senha"], nome=dados["nome"].strip(),
+                data_nascimento=dados["data_nascimento"],
+            )
+        except RegraNegocioError as erro:
+            campo = "senha" if erro.campo == "nova_senha" else erro.campo
+            form.add_error(campo if campo in form.fields else None, erro.mensagem)
+        else:
+            login(request, usuario, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, f"Bem-vindo(a) ao Conexão Coral, {usuario.get_short_name()}!")
+            return redirect("web:consulados")
+    return render(request, "web/cadastro.html", {"form": form})
 
 
 # ----------------------------------------------------------------- consulados

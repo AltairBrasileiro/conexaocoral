@@ -54,6 +54,7 @@ urlpatterns = [
     path("", views.consulados, name="consulados"),
     path("entrar/", views.EntrarView.as_view(), name="login"),
     path("sair/", views.SairView.as_view(), name="logout"),
+    path("cadastro/", views.cadastro, name="cadastro"),
     path("consulados/<int:pk>/", views.consulado_detalhe, name="consulado"),
     path("eventos/<int:pk>/confirmar/", views.confirmar_presenca, name="confirmar-presenca"),
     path("partidas/", views.partidas, name="partidas"),

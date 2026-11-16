@@ -589,3 +589,41 @@ PAPEIS_ROTULOS = (
 
 class PapelForm(forms.Form):
     tipo_usuario = forms.ChoiceField(label="Papel", choices=PAPEIS_ROTULOS)
+
+
+class CadastroForm(forms.Form):
+    """Cadastro de torcedor feito na tela inicial (as regras ficam no ``UsuarioService``)."""
+
+    nome = forms.CharField(
+        label="Nome", max_length=150,
+        widget=forms.TextInput(attrs={"autocomplete": "name", "autofocus": True}),
+        error_messages={"required": "Informe o seu nome."},
+    )
+    email = forms.EmailField(
+        label="E-mail",
+        widget=forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "voce@email.com"}),
+        error_messages={"required": "Informe o seu e-mail.", "invalid": "Informe um e-mail válido."},
+    )
+    data_nascimento = forms.DateField(
+        label="Data de nascimento",
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}, format="%Y-%m-%d"),
+        error_messages={"required": "Informe a sua data de nascimento.", "invalid": "Informe uma data válida."},
+    )
+    senha = _campo_senha(
+        "Senha", "new-password",
+        help_text="Pelo menos 8 caracteres; não pode ser só números nem parecida com o seu nome ou e-mail.",
+        error_messages={"required": "Crie uma senha."},
+    )
+    confirmacao = _campo_senha(
+        "Confirme a senha", "new-password", error_messages={"required": "Repita a senha."},
+    )
+
+    def clean_email(self) -> str:
+        return self.cleaned_data["email"].strip().lower()
+
+    def clean(self):
+        dados = super().clean()
+        if dados.get("senha") and dados.get("confirmacao") and dados["senha"] != dados["confirmacao"]:
+            self.add_error("confirmacao", "As senhas não conferem.")
+        return dados

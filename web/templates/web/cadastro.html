@@ -1,0 +1,17 @@
+{% extends "web/_senha_base.html" %}
+{% block titulo %}Criar conta · Conexão Coral{% endblock %}
+{% block senha %}
+<form method="post" class="login__form" novalidate>
+  {% csrf_token %}
+  <h2>Criar conta</h2>
+  <p class="apoio">Cadastre-se para encontrar consulados, confirmar presença nos eventos e pegar carona com a torcida.</p>
+  {% if form.non_field_errors %}<div class="alerta">{% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}</div>{% endif %}
+  {% include "web/_campo.html" with campo=form.nome %}
+  {% include "web/_campo.html" with campo=form.email %}
+  {% include "web/_campo.html" with campo=form.data_nascimento %}
+  {% include "web/_campo_senha.html" with campo=form.senha %}
+  {% include "web/_campo_senha.html" with campo=form.confirmacao %}
+  <button type="submit" class="botao">Criar conta</button>
+  <p class="login__link">Já tem conta? <a href="{% url 'web:login' %}">Entrar</a></p>
+</form>
+{% endblock %}
