@@ -353,7 +353,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 @media (max-width: 640px) {
   .lp-container { padding: 0 16px; }
-  .lp-marca span { display: none; }
   .lp-hero { padding: 48px 0 64px; }
   .lp-hero__ctas .lp-botao { width: 100%; }
   .lp-passos, .lp-recursos { grid-template-columns: 1fr; }
@@ -422,3 +421,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Celular reduzido por inteiro (mesmo modelo e proporções), para a faixa vermelha aparecer ao abrir. */
 @media (min-width: 961px) { .lp-celular { zoom: .86; } }
+
+/* Topo no celular: o seletor antigo ".lp-marca span" escondia também o emblema (feito de spans).
+   Agora o emblema e o nome sempre aparecem; em telas estreitas o "Criar conta" sai do topo
+   (ele está logo abaixo, no destaque principal). */
+@media (max-width: 640px) {
+  .lp-topo__barra { gap: 12px; min-height: 60px; }
+  .lp-marca { font-size: 17px; gap: 8px; }
+  .lp-topo__acoes { gap: 12px; }
+}
+@media (max-width: 420px) {
+  .lp-topo__acoes .lp-botao { display: none; }
+}
