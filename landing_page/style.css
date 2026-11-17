@@ -411,3 +411,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .lp-app__cards div { justify-content: space-between; }
 .lp-app__cards small { min-height: 2.6em; line-height: 1.3; }
 .lp-app__cards strong { line-height: 1; }
+
+/* Hero compacto: ao abrir, tudo até os selos (Gratuito, Feito por torcedores...) cabe na primeira tela. */
+.lp-hero { padding: 32px 0 40px; }
+.lp-hero h1 { font-size: clamp(36px, 4.4vw, 56px); }
+.lp-selo { margin-bottom: 16px; }
+.lp-hero__apoio { margin-top: 16px; font-size: 17px; line-height: 1.55; }
+.lp-hero__ctas { margin-top: 22px; }
+.lp-hero__selos { margin-top: 18px; }
+
+/* Celular reduzido por inteiro (mesmo modelo e proporções), para a faixa vermelha aparecer ao abrir. */
+@media (min-width: 961px) { .lp-celular { zoom: .86; } }
