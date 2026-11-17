@@ -217,6 +217,20 @@ def cadastro(request: HttpRequest) -> HttpResponse:
     return render(request, "web/cadastro.html", {"form": form})
 
 
+# ---------------------------------------------------------------- landing page
+def inicio(request: HttpRequest) -> HttpResponse:
+    """Página inicial: a landing page para visitantes; o mapa de consulados para quem já entrou."""
+    if request.user.is_authenticated:
+        return consulados(request)
+    return render(request, "web/landing.html", {
+        "total_consulados": Consulado.objects.filter(status_aprovacao=StatusAprovacao.APROVADO).count(),
+        "total_torcedores": Usuario.objects.filter(is_active=True).count(),
+        "total_eventos": Evento.objects.filter(status_aprovacao=StatusAprovacao.APROVADO).count(),
+        "total_aliados": Aliado.objects.filter(status_aprovacao=StatusAprovacao.APROVADO).count(),
+        "partida": _proxima_partida(),
+    })
+
+
 # ----------------------------------------------------------------- consulados
 @login_required
 def consulados(request: HttpRequest) -> HttpResponse:

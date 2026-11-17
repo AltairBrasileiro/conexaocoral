@@ -51,7 +51,7 @@ from web import views, views_admin, views_aliados
 app_name = "web"
 
 urlpatterns = [
-    path("", views.consulados, name="consulados"),
+    path("", views.inicio, name="consulados"),
     path("entrar/", views.EntrarView.as_view(), name="login"),
     path("sair/", views.SairView.as_view(), name="logout"),
     path("cadastro/", views.cadastro, name="cadastro"),

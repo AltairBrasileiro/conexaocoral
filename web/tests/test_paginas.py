@@ -21,9 +21,16 @@ def mensagens(resposta) -> list[str]:
 
 class AutenticacaoTests(TestCase):
     def test_paginas_exigem_login(self):
-        for nome in ("web:consulados", "web:partidas", "web:aliados", "web:painel"):
+        for nome in ("web:partidas", "web:aliados", "web:painel"):
             resposta = self.client.get(reverse(nome))
             self.assertRedirects(resposta, f"{reverse('web:login')}?next={reverse(nome)}", fetch_redirect_response=False)
+
+    def test_visitante_ve_a_landing_page_e_quem_entrou_ve_o_mapa(self):
+        visitante = self.client.get(reverse("web:consulados"))
+        self.assertTemplateUsed(visitante, "web/landing.html")
+        self.assertContains(visitante, reverse("web:cadastro"))
+        self.client.force_login(criar_usuario())
+        self.assertTemplateUsed(self.client.get(reverse("web:consulados")), "web/consulados.html")
 
     def test_login_por_email_sem_diferenciar_maiusculas(self):
         criar_usuario(email="torcedor@coral.com")
@@ -41,7 +48,7 @@ class AutenticacaoTests(TestCase):
         self.client.force_login(criar_usuario())
         resposta = self.client.post(reverse("web:logout"))
         self.assertRedirects(resposta, reverse("web:login"), fetch_redirect_response=False)
-        self.assertEqual(self.client.get(reverse("web:consulados")).status_code, 302)
+        self.assertTemplateUsed(self.client.get(reverse("web:consulados")), "web/landing.html")
 
 
 class PaginasTests(TestCase):
