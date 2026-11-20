@@ -108,6 +108,10 @@ def tem_painel(usuario: Usuario) -> bool:
     """Admin, embaixador, ou membro com cargo (que no Painel edita o ícone, as fotos e os eventos)."""
     if usuario.is_admin or usuario.is_responsavel_consulado:
         return True
+    # Quem responde por um consulado tem o Painel mesmo que o papel não tenha sido
+    # promovido (ex.: consulado aprovado editando o status direto no Django Admin).
+    if Consulado.objects.filter(responsavel=usuario).exists():
+        return True
     return MembroConsuladoRepository().consulados_com_cargo(usuario).exists()
 
 

@@ -88,6 +88,18 @@
   document.querySelectorAll('form[method="post"]').forEach(function (form) {
     form.addEventListener("submit", function (e) {
       if (e.defaultPrevented) return;
+      // Botão desativado não envia o próprio valor: sem isto, em formulários com
+      // dois botões (ex.: name="decisao" Aprovar/Recusar) o servidor não saberia
+      // qual foi clicado. O valor vai num campo oculto antes de desativar.
+      var botao = e.submitter;
+      if (botao && botao.name && !form.querySelector('input[type="hidden"][data-botao-enviado]')) {
+        var campo = document.createElement("input");
+        campo.type = "hidden";
+        campo.name = botao.name;
+        campo.value = botao.value;
+        campo.setAttribute("data-botao-enviado", "");
+        form.appendChild(campo);
+      }
       form.querySelectorAll('button[type="submit"]').forEach(function (b) { b.disabled = true; });
     });
   });
