@@ -883,8 +883,13 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
 .aliado__nome { flex: 1; min-width: 0; }
 .aliado__nome h3 { font-size: 16px; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .aliado__descricao { flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 4.35em; }
-.aliado__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.aliado__acoes .botao { width: 100%; }
+.aliado__icone { overflow: hidden; }
+.aliado__icone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.aliado__acoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.aliado__acoes .botao { flex-direction: column; width: 100%; min-width: 0; min-height: 56px; padding: 6px 4px; gap: 2px; font-size: 13px; line-height: 1.1; }
+.negocio__nome { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.negocio__nome h3 { min-width: 0; overflow-wrap: anywhere; }
+.negocio__perfil { width: 40px; height: 40px; flex: none; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--preto); display: block; }
 
 /* -------------------------------------------------------------- Painel */
 .painel__nome { font-size: 24px; font-weight: 900; margin-bottom: 6px; }
@@ -1199,6 +1204,12 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   color: var(--branco);
   font-size: 12px;
   font-weight: 700;
+}
+.campo-imagem--perfil .campo-imagem__area { width: 128px; height: 128px; min-height: 0; border-radius: 50%; }
+.campo-imagem--perfil .campo-imagem__previa { width: 100%; height: 100%; max-height: none; object-fit: cover; }
+.campo-imagem--perfil .campo-imagem__vazio { padding: 10px; font-size: 13px; text-align: center; }
+.campo-imagem--perfil .campo-imagem__area:has(.campo-imagem__previa:not([hidden]))::after {
+  content: "Trocar"; right: 50%; bottom: 8px; transform: translateX(50%); padding: 4px 10px; font-size: 11px;
 }
 .aceite--pequeno { margin-top: 6px; font-weight: 500; font-size: 14px; }
 .aceite--pequeno input { width: 18px; height: 18px; }

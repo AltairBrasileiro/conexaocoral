@@ -27,6 +27,8 @@
       <div><dt><span class="icon">info</span>Descrição</dt><dd>{{ n.descricao|default:"Não informada"|linebreaksbr }}</dd></div>
       <div><dt><span class="icon">photo_camera</span>Instagram</dt><dd>{% if n.link_instagram %}<a href="{{ n.link_instagram }}" target="_blank" rel="noopener">{{ n.link_instagram }}</a>{% else %}Não informado{% endif %}</dd></div>
       <div><dt><span class="icon">chat</span>WhatsApp</dt><dd>{% if n.link_whatsapp %}<a href="{{ n.link_whatsapp }}" target="_blank" rel="noopener">{{ n.link_whatsapp }}</a>{% else %}Não informado{% endif %}</dd></div>
+      <div><dt><span class="icon">language</span>Site</dt><dd>{% if n.link_site %}<a href="{{ n.link_site }}" target="_blank" rel="noopener">{{ n.link_site }}</a>{% else %}Não informado{% endif %}</dd></div>
+      {% if n.foto_perfil %}<div><dt><span class="icon">account_circle</span>Foto de perfil</dt><dd><a href="{{ n.foto_perfil.url }}" target="_blank" rel="noopener"><img class="negocio__perfil" src="{{ n.foto_perfil.url }}" alt="Foto de perfil enviada pelo lojista" loading="lazy"></a></dd></div>{% endif %}
     </dl>
     <div class="solicitacao__acoes">
       <form method="post" action="{% url 'web:admin-moderar-negocio' n.pk %}">

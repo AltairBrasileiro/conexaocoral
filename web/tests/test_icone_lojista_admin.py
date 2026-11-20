@@ -177,14 +177,17 @@ class LojistaTests(TestCase):
         aliado = criar_aliado(self.lojista, foto=imagem_png())
         self.assertContains(self.client.get(reverse("web:aliados")), aliado.foto.url)
 
-    def test_editar_aprovado_volta_para_analise_e_perde_o_selo(self):
+    def test_dono_edita_aprovado_com_autonomia_sem_sair_da_vitrine(self):
         aliado = criar_aliado(self.lojista, selo_verificado=True)
+        resposta = self.client.get(reverse("web:editar-negocio", args=[aliado.pk]))
+        self.assertNotContains(resposta, "volta para a análise")
         self.client.post(reverse("web:editar-negocio", args=[aliado.pk]),
                          self._dados(nome_negocio="Bar do Arruda", categoria="BAR", descricao="Novo cardápio."))
         aliado.refresh_from_db()
         self.assertEqual(aliado.descricao, "Novo cardápio.")
-        self.assertEqual(aliado.status_aprovacao, StatusAprovacao.PENDENTE)
-        self.assertFalse(aliado.selo_verificado)
+        self.assertEqual(aliado.status_aprovacao, StatusAprovacao.APROVADO)
+        self.assertTrue(aliado.selo_verificado)
+        self.assertContains(self.client.get(reverse("web:aliados")), "Novo cardápio.")
 
     def test_salvar_sem_mudar_nada_nao_tira_da_vitrine(self):
         aliado = criar_aliado(self.lojista, link_instagram="https://instagram.com/bar")

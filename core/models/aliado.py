@@ -6,7 +6,7 @@ from django.db.models import Q
 from core.models.base import AprovavelModel
 from core.models.choices import CategoriaAliado, StatusAprovacao
 from core.validators import (
-    upload_foto_aliado, validar_extensao_imagem, validar_link_instagram, validar_link_whatsapp,
+    upload_foto_aliado, upload_perfil_aliado, validar_extensao_imagem, validar_link_instagram, validar_link_whatsapp,
     validar_tamanho_imagem,
 )
 
@@ -20,6 +20,12 @@ class Aliado(AprovavelModel):
     descricao = models.TextField("descrição", blank=True)
     link_instagram = models.URLField("link do Instagram", blank=True, validators=[validar_link_instagram])
     link_whatsapp = models.URLField("link do WhatsApp", blank=True, validators=[validar_link_whatsapp])
+    link_site = models.URLField("site", blank=True)
+    # Foto de perfil (logo) que aparece no círculo ao lado do nome; sem ela, mostra o ícone da categoria.
+    foto_perfil = models.ImageField(
+        "foto de perfil", upload_to=upload_perfil_aliado, blank=True,
+        validators=[validar_extensao_imagem, validar_tamanho_imagem],
+    )
     # Foto que apresenta o negócio na Vitrine da Torcida (opcional).
     foto = models.ImageField(
         "foto do negócio", upload_to=upload_foto_aliado, blank=True,
@@ -47,3 +53,7 @@ class Aliado(AprovavelModel):
     @property
     def foto_url(self) -> str:
         return self.foto.url if self.foto else ""
+
+    @property
+    def foto_perfil_url(self) -> str:
+        return self.foto_perfil.url if self.foto_perfil else ""

@@ -78,6 +78,10 @@ def upload_foto_aliado(instancia, nome_original: str) -> str:
     return _caminho_aleatorio("aliados", nome_original)
 
 
+def upload_perfil_aliado(instancia, nome_original: str) -> str:
+    return _caminho_aleatorio("aliados/perfil", nome_original)
+
+
 def upload_imagem_evento(instancia, nome_original: str) -> str:
     return _caminho_aleatorio("eventos", nome_original)
 

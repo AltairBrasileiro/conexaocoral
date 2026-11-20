@@ -19,7 +19,10 @@
       {% if n.foto %}<img src="{{ n.foto.url }}" alt="Foto de {{ n.nome_negocio }}" loading="lazy">{% else %}<span class="icon">{{ n.categoria|icone_categoria }}</span>{% endif %}
     </div>
     <div class="negocio__corpo">
-      <h3>{{ n.nome_negocio }}</h3>
+      <div class="negocio__nome">
+        {% if n.foto_perfil %}<img class="negocio__perfil" src="{{ n.foto_perfil.url }}" alt="Foto de perfil de {{ n.nome_negocio }}" loading="lazy">{% endif %}
+        <h3>{{ n.nome_negocio }}</h3>
+      </div>
       <div class="pills">
         <span class="pill"><span class="icon">{{ n.categoria|icone_categoria }}</span>{{ n.get_categoria_display }}</span>
         {% if n.aprovado %}
@@ -38,6 +41,7 @@
       <p class="apoio pequeno negocio__links">
         <span class="icon">photo_camera</span>{% if n.link_instagram %}<a href="{{ n.link_instagram }}" target="_blank" rel="noopener">Instagram</a>{% else %}Sem Instagram{% endif %}
         <span class="icon">chat</span>{% if n.link_whatsapp %}<a href="{{ n.link_whatsapp }}" target="_blank" rel="noopener">WhatsApp</a>{% else %}Sem WhatsApp{% endif %}
+        <span class="icon">language</span>{% if n.link_site %}<a href="{{ n.link_site }}" target="_blank" rel="noopener">Site</a>{% else %}Sem site{% endif %}
       </p>
     </div>
     <div class="negocio__acoes">

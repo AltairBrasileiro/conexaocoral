@@ -1,9 +1,10 @@
 {% comment %}
   Campo de upload de imagem com pré-visualização.
   Parâmetros: campo (BoundField); atual (URL da imagem já salva, opcional);
-  removivel (mostra "Remover imagem", que o ClearableFileInput lê como "<nome>-clear").
+  removivel (mostra "Remover imagem", que o ClearableFileInput lê como "<nome>-clear");
+  redondo (pré-visualização em círculo, para foto de perfil).
 {% endcomment %}
-<div class="campo campo-imagem{% if campo.errors %} campo--erro{% endif %}">
+<div class="campo campo-imagem{% if redondo %} campo-imagem--perfil{% endif %}{% if campo.errors %} campo--erro{% endif %}">
   <span class="campo__rotulo">{{ campo.label }}</span>
   <label class="campo-imagem__area" for="{{ campo.id_for_label }}">
     <img class="campo-imagem__previa" data-previa-de="{{ campo.id_for_label }}" alt=""{% if atual %} src="{{ atual }}"{% else %} hidden{% endif %}>

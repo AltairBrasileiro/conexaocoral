@@ -501,9 +501,60 @@ class IconeConsuladoForm(forms.Form):
 
 
 # ------------------------------------------------- negócio do lojista (aliado)
+def _normalizar_instagram(valor: str) -> str:
+    """"@perfil", "perfil" ou "instagram.com/perfil" viram o link completo."""
+    # Sem barra e sem "instagram" é só o nome do perfil (que pode ter ponto: "bar.coral").
+    if valor.startswith("@") or ("/" not in valor and "instagram" not in valor.lower()):
+        return f"https://instagram.com/{valor.lstrip('@')}"
+    return valor
+
+
+def _normalizar_whatsapp(valor: str) -> str:
+    """Número de telefone ("(81) 99999-9999") vira o link wa.me com o DDI do Brasil."""
+    if any(c.isalpha() for c in valor):
+        return valor
+    digitos = "".join(c for c in valor if c.isdigit())
+    if len(digitos) in (10, 11):
+        digitos = "55" + digitos
+    return f"https://wa.me/{digitos}" if len(digitos) >= 12 else valor
+
+
+class LinkField(forms.URLField):
+    """
+    Aceita o que se digita no celular sem o "https://"; o ``normalizar``
+    transforma o atalho (@perfil, telefone) no link completo antes da validação.
+    """
+
+    def __init__(self, *args, normalizar=None, **kwargs):
+        self.normalizar = normalizar
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        value = (value or "").strip()
+        if value and self.normalizar:
+            value = self.normalizar(value)
+        if value and "://" not in value:
+            value = "https://" + value
+        return super().to_python(value)
+
+
+def _attrs_link(placeholder: str, inputmode: str = "url") -> dict:
+    # Sem corretor e sem maiúscula automática: o teclado do celular não estraga o link.
+    return {
+        "placeholder": placeholder, "inputmode": inputmode, "autocapitalize": "none",
+        "autocorrect": "off", "spellcheck": "false", "autocomplete": "off",
+    }
+
+
 class AliadoForm(forms.ModelForm):
     """Negócio exibido na Vitrine da Torcida (as regras ficam no ``AliadoService``)."""
 
+    foto_perfil = forms.ImageField(
+        label="Foto de perfil (opcional)",
+        required=False,
+        help_text=f"Logo ou foto que aparece no círculo ao lado do nome. JPG, PNG ou WebP de até {TAMANHO_MAXIMO_IMAGEM_MB} MB.",
+        widget=forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
     foto = forms.ImageField(
         label="Foto do negócio (opcional)",
         required=False,
@@ -513,29 +564,40 @@ class AliadoForm(forms.ModelForm):
 
     class Meta:
         model = Aliado
-        fields = ("nome_negocio", "categoria", "descricao", "link_instagram", "link_whatsapp")
+        fields = ("nome_negocio", "categoria", "descricao", "link_instagram", "link_whatsapp", "link_site")
         labels = {
             "nome_negocio": "Nome do negócio",
             "categoria": "Categoria",
             "descricao": "Descrição",
             "link_instagram": "Página do Instagram (opcional)",
             "link_whatsapp": "WhatsApp (opcional)",
+            "link_site": "Site (opcional)",
         }
         widgets = {
             "nome_negocio": forms.TextInput(attrs={"placeholder": "Ex.: Bar do Arruda"}),
             "descricao": forms.Textarea(attrs={
                 "rows": 4, "placeholder": "O que você oferece, onde fica, horários, desconto para a torcida…",
             }),
-            "link_instagram": forms.URLInput(attrs={"placeholder": "https://instagram.com/seu_perfil"}),
-            "link_whatsapp": forms.URLInput(attrs={"placeholder": "https://wa.me/5581999999999"}),
+            "link_instagram": forms.TextInput(attrs=_attrs_link("@seu_perfil")),
+            "link_whatsapp": forms.TextInput(attrs=_attrs_link("(81) 99999-9999", inputmode="tel")),
+            "link_site": forms.TextInput(attrs=_attrs_link("www.seunegocio.com.br")),
+        }
+        field_classes = {"link_instagram": LinkField, "link_whatsapp": LinkField, "link_site": LinkField}
+        help_texts = {
+            "link_instagram": "O @ do perfil ou o link da página.",
+            "link_whatsapp": "O número com DDD ou um link do WhatsApp.",
+            "link_site": "Endereço da loja virtual ou página do negócio.",
         }
         error_messages = {
             "nome_negocio": {"required": "Informe o nome do negócio."},
+            "link_site": {"invalid": "Informe um endereço válido (ex.: https://www.seunegocio.com.br)."},
             "categoria": {"required": "Escolha a categoria."},
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["link_instagram"].normalizar = _normalizar_instagram
+        self.fields["link_whatsapp"].normalizar = _normalizar_whatsapp
         self.fields["descricao"].required = True
         self.fields["descricao"].error_messages["required"] = "Descreva o seu negócio."
 
@@ -543,6 +605,20 @@ class AliadoForm(forms.ModelForm):
         # False = "Remover a imagem atual" marcado; None = nada enviado.
         foto = self.cleaned_data.get("foto")
         return foto if foto is False else _validar_upload_imagem(foto)
+
+    def clean_foto_perfil(self):
+        foto = self.cleaned_data.get("foto_perfil")
+        return foto if foto is False else _validar_upload_imagem(foto)
+
+    def imagens(self) -> tuple[dict, dict]:
+        """(arquivos novos, remoções marcadas) das duas imagens do negócio."""
+        novos, remover = {}, {}
+        for campo in ("foto", "foto_perfil"):
+            valor = self.cleaned_data.get(campo)
+            if isinstance(valor, UploadedFile):
+                novos[campo] = valor
+            remover[f"remover_{campo}"] = valor is False
+        return novos, remover
 
     def dados_aliado(self) -> dict:
         """Campos esperados por ``AliadoService`` (a foto vai à parte: ver as views)."""

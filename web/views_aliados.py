@@ -10,13 +10,12 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.core.files.uploadedfile import UploadedFile
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from core.exceptions import RegraNegocioError
-from core.models import Aliado, Usuario
+from core.models import Aliado, StatusAprovacao, Usuario
 from core.repositories import AliadoRepository
 from core.services import AliadoService
 from web.forms import AliadoForm
@@ -57,11 +56,9 @@ def meus_negocios(request: HttpRequest) -> HttpResponse:
 def novo_negocio(request: HttpRequest) -> HttpResponse:
     form = AliadoForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        foto = form.cleaned_data["foto"]
+        novos, _ = form.imagens()
         try:
-            aliado = AliadoService().criar_aliado(
-                request.user, foto=foto if isinstance(foto, UploadedFile) else None, **form.dados_aliado(),
-            )
+            aliado = AliadoService().criar_aliado(request.user, **novos, **form.dados_aliado())
         except RegraNegocioError as erro:
             _erro_no_form(form, erro)
         else:
@@ -82,25 +79,23 @@ def editar_negocio(request: HttpRequest, pk: int) -> HttpResponse:
     voltar = _voltar_para(request, aliado)
     form = AliadoForm(request.POST or None, request.FILES or None, instance=aliado)
     if request.method == "POST" and form.is_valid():
-        foto = form.cleaned_data["foto"]
+        novos, remover = form.imagens()
         dados = {campo: form.cleaned_data[campo] for campo in form.changed_data if campo in form.Meta.fields}
-        if isinstance(foto, UploadedFile):
-            dados["foto"] = foto
         try:
-            aliado = AliadoService().atualizar_aliado(aliado, request.user, remover_foto=foto is False, **dados)
+            aliado = AliadoService().atualizar_aliado(aliado, request.user, **remover, **novos, **dados)
         except RegraNegocioError as erro:
             _erro_no_form(form, erro)
         else:
             messages.success(
                 request,
                 "Dados do negócio atualizados." if aliado.aprovado
-                else "Dados atualizados. O negócio volta para a vitrine depois que a administração aprovar de novo.",
+                else "Dados atualizados. O negócio aparece na vitrine depois que a administração aprovar.",
             )
             return redirect(voltar)
     return render(request, "web/negocio_form.html", {
         "aba": "aliados", "form": form, "negocio": aliado, "voltar": voltar,
-        # Quem não é admin e edita um cadastro aprovado precisa saber que ele volta para análise.
-        "volta_para_analise": aliado.aprovado and not request.user.is_admin,
+        # Corrigir um cadastro recusado reenvia o negócio para a análise.
+        "volta_para_analise": aliado.status_aprovacao == StatusAprovacao.REJEITADO and not request.user.is_admin,
     })
 
 

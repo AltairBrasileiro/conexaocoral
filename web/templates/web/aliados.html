@@ -41,7 +41,7 @@
       </a>
       {% endif %}
       <div class="aliado__topo">
-        <span class="aliado__icone"><span class="icon">{{ aliado.categoria|icone_categoria }}</span></span>
+        <span class="aliado__icone">{% if aliado.foto_perfil %}<img src="{{ aliado.foto_perfil.url }}" alt="" loading="lazy">{% else %}<span class="icon">{{ aliado.categoria|icone_categoria }}</span>{% endif %}</span>
         <div class="aliado__nome">
           <h3>{{ aliado.nome_negocio }}</h3>
           <small class="apoio">{{ aliado.get_categoria_display }}</small>
@@ -61,6 +61,11 @@
           <a class="botao botao--compacto" href="{{ aliado.link_whatsapp }}" target="_blank" rel="noopener"><span class="icon">chat</span>WhatsApp</a>
         {% else %}
           <button type="button" class="botao botao--compacto" disabled><span class="icon">chat</span>WhatsApp</button>
+        {% endif %}
+        {% if aliado.link_site %}
+          <a class="botao botao--contorno botao--compacto" href="{{ aliado.link_site }}" target="_blank" rel="noopener"><span class="icon">language</span>Site</a>
+        {% else %}
+          <button type="button" class="botao botao--contorno botao--compacto" disabled><span class="icon">language</span>Site</button>
         {% endif %}
       </div>
     </article>

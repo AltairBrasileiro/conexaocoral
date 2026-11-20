@@ -15,7 +15,7 @@ class AliadoSerializer(ValidacaoServiceMixin, serializers.ModelSerializer):
         model = Aliado
         fields = (
             "id", "usuario", "nome_negocio", "categoria", "categoria_display", "descricao",
-            "link_instagram", "link_whatsapp", "foto", "status_aprovacao", "motivo_rejeicao", "selo_verificado",
+            "link_instagram", "link_whatsapp", "link_site", "foto", "foto_perfil", "status_aprovacao", "motivo_rejeicao", "selo_verificado",
             "criado_em",
         )
         # Moderação e selo só mudam pelas actions exclusivas do admin.

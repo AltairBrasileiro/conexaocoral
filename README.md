@@ -120,7 +120,8 @@ Agende `python manage.py limpar_tokens_expirados` (cron) para manter a tabela en
   Instagram, WhatsApp e foto opcionais; o dono edita e exclui o que cadastrou (até 5 por conta). Ao
   aprovar o negócio de um torcedor, ele vira Responsável por Aliado (lojista).
 - **Moderação de aliados**: nascem `PENDENTE` (exceto se criados por admin) e só aparecem na vitrine
-  depois de aprovados; edição do dono em aliado já avaliado volta para `PENDENTE`. A recusa pode levar
+  depois de aprovados; depois disso o dono edita com autonomia (continua na vitrine e com o selo), e só a
+  correção de um aliado `REJEITADO` volta para `PENDENTE`. A recusa pode levar
   um motivo, que o dono vê.
 - **Administração sem Django Admin**: o Painel do Administrador tem as abas Consulados, Solicitações
   (novos consulados), Negócios (aprovar, recusar, selo, tirar da vitrine), Usuários (busca, troca de

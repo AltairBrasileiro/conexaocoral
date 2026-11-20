@@ -11,7 +11,7 @@
     {% else %}Preencha os dados do seu negócio. A administração analisa o cadastro e, se aprovado, ele aparece na Vitrine da Torcida.{% endif %}
   </p>
   {% if volta_para_analise %}
-  <div class="card linha"><span class="icon">info</span><span>Ao salvar alterações, o negócio <strong>sai da vitrine</strong> até a administração aprovar de novo{% if negocio.selo_verificado %} e perde o selo de verificado{% endif %}.</span></div>
+  <div class="card linha"><span class="icon">info</span><span>Ao salvar as correções, o negócio <strong>volta para a análise</strong> da administração.</span></div>
   {% endif %}
 
   <form method="post" class="card card--padding formulario" enctype="multipart/form-data" novalidate>
@@ -22,6 +22,8 @@
     {% include "web/_campo.html" with campo=form.descricao %}
     {% include "web/_campo.html" with campo=form.link_instagram %}
     {% include "web/_campo.html" with campo=form.link_whatsapp %}
+    {% include "web/_campo.html" with campo=form.link_site %}
+    {% include "web/_campo_imagem.html" with campo=form.foto_perfil atual=negocio.foto_perfil_url removivel=True redondo=True %}
     {% include "web/_campo_imagem.html" with campo=form.foto atual=negocio.foto_url removivel=True %}
     <div class="formulario__acoes">
       <a class="botao-texto" href="{% url voltar %}">Cancelar</a>
