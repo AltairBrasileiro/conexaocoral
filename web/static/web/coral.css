@@ -1557,3 +1557,29 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
   .lista-admin__acoes { flex-basis: 100%; }
   .lista-admin .membro__cargo { width: auto; }
 }
+
+/* ------------------------------------------------- Aniversariante do dia */
+/* Cores sempre em sequência preto → branco → vermelho: o preto nunca encosta no vermelho. */
+.aniversario { position: relative; overflow: hidden; margin-top: 16px; padding: 18px 14px 12px; border: 1.5px solid var(--cinza-borda); }
+.aniversario::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: linear-gradient(90deg, var(--preto) 0 33.3%, var(--branco) 33.3% 66.6%, var(--vermelho) 66.6%); }
+.aniversario__titulo { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 16px; font-weight: 900; }
+.aniversario__titulo .icon { color: var(--vermelho); }
+.aniversario__lista { list-style: none; margin: 0; padding: 0; }
+.aniversario__pessoa { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+.aniversario__pessoa + .aniversario__pessoa { border-top: 1px solid var(--cinza-borda); }
+.aniversario__pessoa div { flex: 1; min-width: 0; }
+.aniversario__pessoa strong { display: block; overflow-wrap: anywhere; }
+.aniversario__pessoa small { color: var(--cinza-texto); font-size: 13px; }
+.aniversario__bolo { flex: none; font-size: 22px; line-height: 1; }
+.iniciais { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; font-weight: 900; font-size: 14px; }
+.iniciais--preto { background: var(--preto); color: var(--branco); }
+.iniciais--branco { background: var(--branco); color: var(--preto); box-shadow: inset 0 0 0 2px var(--preto); }
+.iniciais--vermelho { background: var(--vermelho); color: var(--branco); }
+.botao--whatsapp { margin-top: 10px; background: #25D366; border-color: #25D366; color: #FFFFFF; }
+.botao--whatsapp:hover { background: #1EBE5A; border-color: #1EBE5A; }
+.aniversario__nota { margin: 6px 0 0; text-align: center; color: var(--cinza-texto); font-size: 12px; }
+.festa-aniversario { margin-top: 16px; padding: 18px 16px; border-radius: var(--raio); background: var(--vermelho); color: var(--branco); text-align: center; }
+.festa-aniversario__emoji { font-size: 40px; line-height: 1; }
+.festa-aniversario h2 { margin: 8px 0 4px; font-size: 20px; font-weight: 900; color: var(--branco); }
+.festa-aniversario p { margin: 0; }
+.festa-aniversario__email { display: inline-block; margin-top: 10px; padding: 5px 12px; border-radius: 30px; background: var(--branco); color: var(--vermelho); font-size: 13px; font-weight: 800; }

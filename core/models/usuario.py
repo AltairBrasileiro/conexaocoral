@@ -62,6 +62,10 @@ class Usuario(AbstractUser):
     # Dados do perfil, preenchidos pelo próprio usuário em "Minha conta". A data de
     # nascimento é obrigatória lá, mas fica vazia nas contas criadas antes dela existir.
     data_nascimento = models.DateField("data de nascimento", null=True, blank=True)
+    # Aniversariante do dia: aparecer (só o nome) para os membros dos consulados.
+    mostrar_aniversario = models.BooleanField("mostrar meu aniversário no consulado", default=True)
+    # Dia em que o último e-mail de parabéns foi enviado (evita repetir no mesmo dia).
+    aniversario_email_enviado_em = models.DateField("parabéns enviado em", null=True, blank=True, editable=False)
     # Só dígitos; None (e não "") quando não informado, para a unicidade valer só entre CPFs preenchidos.
     cpf = models.CharField("CPF", max_length=11, null=True, blank=True, unique=True, validators=[validar_cpf])
     endereco = models.CharField("endereço", max_length=255, blank=True)

@@ -159,6 +159,8 @@ EMAIL_BACKEND = (
     else "django.core.mail.backends.console.EmailBackend"
 )
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Conexão Coral <nao-responda@conexaocoral.com.br>")
+# Endereço público do site, usado nos links dos e-mails automáticos (ex.: parabéns).
+SITE_URL = config("SITE_URL", default="https://conexaocoral.com.br")
 # Validade do link de redefinição de senha (em segundos): 1 hora.
 PASSWORD_RESET_TIMEOUT = 60 * 60
 

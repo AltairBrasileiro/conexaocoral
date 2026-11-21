@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feliz aniversário, {{ primeiro_nome }}!</title>
+</head>
+{# E-mail: estilos inline e tabelas, para funcionar no Gmail, Outlook e celulares. #}
+{# Cores sempre em sequência preto → branco → vermelho: o preto nunca encosta no vermelho. #}
+<body style="margin:0;padding:0;background:#F7F7F7;font-family:Arial,Helvetica,sans-serif;color:#0B0B0B;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F7;">
+  <tr><td align="center" style="padding:24px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border-radius:14px;overflow:hidden;">
+      <tr><td style="padding:0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td width="33%" height="8" style="background:#0B0B0B;font-size:0;line-height:0;">&nbsp;</td>
+          <td width="34%" height="8" style="background:#FFFFFF;font-size:0;line-height:0;">&nbsp;</td>
+          <td width="33%" height="8" style="background:#E30613;font-size:0;line-height:0;">&nbsp;</td>
+        </tr></table>
+      </td></tr>
+      <tr><td height="6" style="background:#FFFFFF;font-size:0;line-height:0;">&nbsp;</td></tr>
+      <tr><td align="center" style="background:#0B0B0B;padding:26px 16px 22px;">
+        <div style="font-size:40px;line-height:1;">🎉</div>
+        <h1 style="margin:12px 0 0;font-size:26px;font-weight:900;color:#FFFFFF;">Parabéns, tricolor!</h1>
+      </td></tr>
+      <tr><td style="padding:22px 24px 6px;font-size:15px;line-height:1.6;">
+        <p style="margin:0 0 12px;">Olá, <strong>{{ primeiro_nome }}</strong>!</p>
+        <p style="margin:0 0 12px;">Hoje a arquibancada canta para você. Toda a Nação Coral{% if consulados %}, e em especial o pessoal do <strong>{{ consulados }}</strong>,{% endif %} deseja um feliz aniversário!</p>
+        <p style="margin:0 0 12px;">Que este novo ano venha com saúde, alegria, muitos encontros com a sua gente e, claro, muitas vitórias do Mais Querido.</p>
+        <p style="margin:0 0 12px;">Onde o Santa Cruz jogar, a Nação Coral estará, e hoje ela está com você. ⚫⚪🔴</p>
+      </td></tr>
+      <tr><td style="padding:8px 24px 24px;">
+        <a href="{{ link }}" style="display:block;background:#E30613;color:#FFFFFF;text-align:center;text-decoration:none;font-weight:800;font-size:16px;padding:14px;border-radius:12px;">{{ texto_botao }}</a>
+      </td></tr>
+      <tr><td align="center" style="background:#F7F7F7;padding:14px 16px;font-size:12px;color:#5F5F5F;line-height:1.5;">
+        Conexão Coral · Feito por torcedores, para torcedores.<br>
+        Você recebe este e-mail por ser membro da Conexão Coral.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

@@ -37,7 +37,9 @@ from core.repositories import (
     AliadoRepository, CaronaRepository, ConsuladoRepository, EventoRepository, FotoConsuladoRepository,
     MembroConsuladoRepository, ReservaCaronaRepository, SolicitacaoMembroRepository,
 )
-from core.services import CaronaService, ConsuladoService, EventoService, ReporteService, UsuarioService
+from core.services import (
+    AniversarioService, CaronaService, ConsuladoService, EventoService, ReporteService, UsuarioService,
+)
 from web.forms import (
     CARGOS, OUTRO_CARGO, CadastroForm, CargoForm, CaronaForm, ConsuladoForm, EntrarForm, EsqueciSenhaForm, EventoForm,
     FotoConsuladoForm, FotoPerfilForm, IconeConsuladoForm, LegendaFotoForm, NovaSenhaForm, NovoMembroForm, PerfilForm, RejeicaoForm,
@@ -322,6 +324,7 @@ def consulado_detalhe(request: HttpRequest, pk: int) -> HttpResponse:
             .values_list("carona_id", flat=True)
         ),
         "pode_oferecer_carona": consulado.aprovado and CaronaService().pode_oferecer(request.user, consulado),
+        **AniversarioService().contexto_do_consulado(request.user, consulado),
         "agora": timezone.now(),
     })
 

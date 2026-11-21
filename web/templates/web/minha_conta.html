@@ -49,6 +49,10 @@
       {% include "web/_campo.html" with campo=perfil_form.cpf %}
     </div>
     {% include "web/_campo.html" with campo=perfil_form.endereco %}
+    <label class="aceite aceite--pequeno" for="{{ perfil_form.mostrar_aniversario.id_for_label }}">
+      {{ perfil_form.mostrar_aniversario }}
+      <span>{{ perfil_form.mostrar_aniversario.label }} <small class="apoio">{{ perfil_form.mostrar_aniversario.help_text }}</small></span>
+    </label>
     <div class="formulario__acoes">
       <button type="submit" class="botao botao--compacto"><span class="icon">save</span>Salvar dados</button>
     </div>

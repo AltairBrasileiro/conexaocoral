@@ -1,0 +1,31 @@
+{% comment %}
+  Aniversariante do dia na página do consulado (só membros, embaixador e admin).
+  A própria pessoa vê a faixa de "Feliz aniversário"; o cartão lista os demais.
+{% endcomment %}
+{% if meu_aniversario %}
+<section class="festa-aniversario" aria-label="Seu aniversário">
+  <div class="festa-aniversario__emoji" aria-hidden="true">🎉</div>
+  <h2>Feliz aniversário, {{ user.get_short_name }}!</h2>
+  <p>A Nação Coral celebra com você. Que seja um ano de muitas vitórias do Mais Querido!</p>
+  {% if parabens_por_email %}<span class="festa-aniversario__email">Seus parabéns também foram para o seu e-mail</span>{% endif %}
+</section>
+{% endif %}
+
+{% if outros_aniversariantes %}
+<section class="card aniversario" aria-label="Aniversariantes de hoje">
+  <h2 class="aniversario__titulo"><span class="icon">cake</span>Aniversariantes de hoje</h2>
+  <ul class="aniversario__lista">
+    {% for p in aniversariantes %}
+    <li class="aniversario__pessoa">
+      <span class="iniciais iniciais--{{ p.cor }}" aria-hidden="true">{{ p.iniciais }}</span>
+      <div><strong>{{ p.nome }}</strong><small>{% if p.eu %}É você! Faz aniversário hoje{% else %}Faz aniversário hoje{% endif %}</small></div>
+      <span class="aniversario__bolo" aria-hidden="true">🎂</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if link_parabens_grupo %}
+  <a class="botao botao--whatsapp" href="{{ link_parabens_grupo }}" target="_blank" rel="noopener"><span class="icon">chat</span>Dar os parabéns no grupo</a>
+  <p class="aniversario__nota">O WhatsApp abre com a mensagem pronta: escolha o grupo do consulado e envie.</p>
+  {% endif %}
+</section>
+{% endif %}

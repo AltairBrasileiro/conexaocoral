@@ -92,6 +92,7 @@ class UsuarioService:
         telefone: str = "",
         cpf: str | None = "",
         endereco: str = "",
+        mostrar_aniversario: bool | None = None,
     ) -> Usuario:
         nome = (nome or "").strip()
         if not nome:
@@ -114,6 +115,7 @@ class UsuarioService:
             telefone=telefone,
             cpf=self.normalizar_cpf(usuario, cpf),
             endereco=(endereco or "").strip(),
+            **({} if mostrar_aniversario is None else {"mostrar_aniversario": bool(mostrar_aniversario)}),
         )
 
     # ----------------------------------------------------------------- foto

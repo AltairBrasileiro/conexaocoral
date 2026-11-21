@@ -1,0 +1,14 @@
+{% autoescape off %}Olá, {{ primeiro_nome }}!
+
+Hoje a arquibancada canta para você. Toda a Nação Coral{% if consulados %}, e em especial o pessoal do {{ consulados }},{% endif %} deseja um feliz aniversário!
+
+Que este novo ano venha com saúde, alegria, muitos encontros com a sua gente e, claro, muitas vitórias do Mais Querido.
+
+Onde o Santa Cruz jogar, a Nação Coral estará, e hoje ela está com você. ⚫⚪🔴
+
+{{ texto_botao }}: {{ link }}
+
+--
+Conexão Coral · Feito por torcedores, para torcedores.
+Você recebe este e-mail por ser membro da Conexão Coral.
+{% endautoescape %}

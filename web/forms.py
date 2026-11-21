@@ -395,6 +395,10 @@ class PerfilForm(forms.Form):
         label="Endereço (opcional)", max_length=255, required=False,
         widget=forms.TextInput(attrs={"autocomplete": "street-address", "placeholder": "Rua, número, bairro, cidade - UF"}),
     )
+    mostrar_aniversario = forms.BooleanField(
+        label="Mostrar meu aniversário no consulado", required=False,
+        help_text="No dia, os membros dos seus consulados veem só o seu nome (nunca a idade nem a data).",
+    )
 
     @classmethod
     def para_usuario(cls, usuario, dados=None) -> "PerfilForm":
@@ -405,6 +409,7 @@ class PerfilForm(forms.Form):
             "telefone": usuario.telefone,
             "cpf": usuario.cpf_formatado,
             "endereco": usuario.endereco,
+            "mostrar_aniversario": usuario.mostrar_aniversario,
         })
 
     def clean_telefone(self) -> str:

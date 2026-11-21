@@ -66,6 +66,8 @@
     {% endif %}
   </div>
 
+  {% include "web/_aniversariantes.html" %}
+
   {% if consulado.aprovado and not eh_responsavel %}
   {% url 'web:consulado' consulado.pk as aqui %}
   <section class="card card--padding adesao" aria-label="Ser membro do consulado">
