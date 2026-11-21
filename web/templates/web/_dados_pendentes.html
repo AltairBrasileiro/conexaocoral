@@ -1,0 +1,1 @@
+{% for artigo, nome in user.dados_pendentes %}{% if not forloop.first %}{% if forloop.last %} e {% else %}, {% endif %}{% endif %}{{ artigo }} <strong>{{ nome }}</strong>{% endfor %}

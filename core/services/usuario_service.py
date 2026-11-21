@@ -2,9 +2,10 @@
 Regras de negócio da conta do usuário.
 
 * Auto-cadastro: o papel ADMIN nunca pode ser escolhido e o e-mail é único.
-* Perfil ("Minha conta"): nome, data de nascimento e e-mail são obrigatórios;
-  telefone, CPF e endereço são opcionais. O e-mail (usado no login) e o CPF
-  não podem repetir os de outra conta.
+* Perfil ("Minha conta") e cadastro: nome, e-mail, data de nascimento,
+  telefone e CPF são obrigatórios; o endereço é opcional. O e-mail (usado no
+  login) e o CPF não podem repetir os de outra conta. Contas antigas sem esses
+  dados veem um aviso pedindo a atualização.
 * Foto do perfil: opcional; pode ser enviada, trocada e removida. O arquivo
   antigo é apagado do armazenamento.
 * Troca de senha: exige a senha atual. Trocar (ou redefinir) a senha encerra
@@ -71,6 +72,19 @@ class UsuarioService:
         if hoje.year - data.year > IDADE_MAXIMA:
             raise RegraNegocioError("Confira o ano da data de nascimento.", campo="data_nascimento")
 
+    def validar_telefone(self, telefone: str) -> str:
+        telefone = (telefone or "").strip()
+        if not telefone:
+            raise RegraNegocioError("Informe o seu telefone.", campo="telefone")
+        self._validar(validar_telefone, telefone, "telefone")
+        return telefone
+
+    def exigir_cpf(self, usuario: Usuario, cpf: str | None) -> str:
+        """CPF obrigatório: só dígitos, válido e sem repetir o de outra conta."""
+        if not somente_digitos(cpf):
+            raise RegraNegocioError("Informe o seu CPF.", campo="cpf")
+        return self.normalizar_cpf(usuario, cpf)
+
     def normalizar_cpf(self, usuario: Usuario, cpf: str | None) -> str | None:
         """Devolve o CPF só com dígitos (ou None se vazio), já validado e sem repetir o de outra conta."""
         cpf = somente_digitos(cpf)
@@ -104,16 +118,15 @@ class UsuarioService:
         if self.repositorio.email_em_uso(email, exceto_id=usuario.id):
             raise ConflitoError("Já existe outra conta com este e-mail.", campo="email")
         self.validar_data_nascimento(data_nascimento)
-        telefone = (telefone or "").strip()
-        if telefone:
-            self._validar(validar_telefone, telefone, "telefone")
+        telefone = self.validar_telefone(telefone)
+        cpf = self.exigir_cpf(usuario, cpf)
         return self.repositorio.atualizar(
             usuario,
             nome=nome,
             email=email,
             data_nascimento=data_nascimento,
             telefone=telefone,
-            cpf=self.normalizar_cpf(usuario, cpf),
+            cpf=cpf,
             endereco=(endereco or "").strip(),
             **({} if mostrar_aniversario is None else {"mostrar_aniversario": bool(mostrar_aniversario)}),
         )

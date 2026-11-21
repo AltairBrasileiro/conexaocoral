@@ -107,6 +107,18 @@ class Usuario(AbstractUser):
         return self.foto.url if self.foto else ""
 
     @property
+    def dados_pendentes(self) -> list[tuple[str, str]]:
+        """Dados obrigatórios ainda não informados, como (artigo, nome) para os avisos."""
+        pendentes = []
+        if not self.telefone:
+            pendentes.append(("o", "telefone"))
+        if not self.cpf:
+            pendentes.append(("o", "CPF"))
+        if self.data_nascimento is None:
+            pendentes.append(("a", "data de nascimento"))
+        return pendentes
+
+    @property
     def cpf_formatado(self) -> str:
         c = self.cpf or ""
         return f"{c[:3]}.{c[3:6]}.{c[6:9]}-{c[9:]}" if len(c) == 11 else c

@@ -94,6 +94,7 @@ class AniversarioNoConsuladoTests(TestCase):
         self.client.force_login(self.maju)
         self.client.post(reverse("web:atualizar-perfil"), {
             "nome": "Maju Guerra", "email": self.maju.email, "data_nascimento": "1998-11-21",
+            "telefone": "(83) 99999-1234", "cpf": "529.982.247-25",
         })
         self.maju.refresh_from_db()
         self.assertFalse(self.maju.mostrar_aniversario)

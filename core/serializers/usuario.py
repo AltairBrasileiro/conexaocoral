@@ -38,9 +38,15 @@ class UsuarioSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return request.build_absolute_uri(obj.foto.url) if request else obj.foto.url
 
+    def validate_telefone(self, valor: str) -> str:
+        try:
+            return UsuarioService().validar_telefone(valor)
+        except RegraNegocioError as erro:
+            raise serializers.ValidationError(erro.mensagem) from erro
+
     def validate_cpf(self, valor: str | None) -> str | None:
         try:
-            return UsuarioService().normalizar_cpf(self.instance, valor)
+            return UsuarioService().exigir_cpf(self.instance, valor)
         except RegraNegocioError as erro:
             raise serializers.ValidationError(erro.mensagem) from erro
 

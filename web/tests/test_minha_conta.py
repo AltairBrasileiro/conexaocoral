@@ -44,7 +44,7 @@ class Cenario(TestCase):
     def dados(self, **extra):
         dados = {
             "nome": "Joana Tricolor", "email": "joana@coral.com", "data_nascimento": "1990-05-17",
-            "telefone": "", "cpf": "", "endereco": "",
+            "telefone": "(81) 99999-0000", "cpf": CPF_VALIDO, "endereco": "",
         }
         dados.update(extra)
         return dados
@@ -58,7 +58,10 @@ class DadosPessoaisTests(Cenario):
         pagina = self.client.get(self.conta).content.decode()
         self.assertIn('value="joana@coral.com"', pagina)
         self.assertLess(pagina.index("Meus dados"), pagina.index("Meus consulados"))
-        self.assertIn("falta informar a <strong>data de nascimento</strong>", pagina)
+        self.assertIn(
+            "falta informar o <strong>telefone</strong>, o <strong>CPF</strong> e a <strong>data de nascimento</strong>",
+            pagina,
+        )
 
     def test_salva_obrigatorios_e_opcionais(self):
         resposta = self.salvar(
@@ -77,18 +80,19 @@ class DadosPessoaisTests(Cenario):
         self.assertContains(pagina, 'value="529.982.247-25"')
         self.assertNotContains(pagina, "falta informar")
 
-    def test_opcionais_podem_ficar_em_branco(self):
-        self.salvar(cpf=CPF_VALIDO, endereco="Rua A")
+    def test_endereco_pode_ficar_em_branco(self):
+        self.salvar(endereco="Rua A")
         self.assertRedirects(self.salvar(), self.conta)
         self.usuario.refresh_from_db()
-        self.assertIsNone(self.usuario.cpf)
         self.assertEqual(self.usuario.endereco, "")
 
-    def test_nome_data_e_email_sao_obrigatorios(self):
+    def test_nome_data_email_telefone_e_cpf_sao_obrigatorios(self):
         for campo, mensagem in (
             ("nome", "Informe o seu nome."),
             ("data_nascimento", "Informe a sua data de nascimento."),
             ("email", "Informe o seu e-mail."),
+            ("telefone", "Informe o seu telefone."),
+            ("cpf", "Informe o seu CPF."),
         ):
             resposta = self.salvar(**{campo: ""})
             self.assertEqual(resposta.status_code, 200, campo)
@@ -113,9 +117,17 @@ class DadosPessoaisTests(Cenario):
         self.usuario.refresh_from_db()
         self.assertEqual(self.usuario.email, "joana@coral.com")
 
-    def test_varias_contas_podem_ficar_sem_cpf(self):
+    def test_contas_antigas_sem_cpf_continuam_funcionando(self):
         criar_usuario(email="outra@coral.com")
         self.assertRedirects(self.salvar(), self.conta)
+
+    def test_aviso_para_atualizar_o_cadastro_some_depois_de_salvar(self):
+        consulados = reverse("web:consulados")
+        self.assertContains(self.client.get(consulados), "Atualize o seu cadastro.")
+        self.assertNotContains(self.client.get(self.conta), "Atualize o seu cadastro.")  # lá já tem o próprio aviso
+        self.assertRedirects(self.salvar(), self.conta)
+        self.assertNotContains(self.client.get(consulados), "Atualize o seu cadastro.")
+        self.assertNotContains(self.client.get(self.conta), "falta informar")
 
     def test_exige_login(self):
         self.client.logout()
@@ -251,7 +263,7 @@ class PerfilPelaApiTests(TestCase):
 
     def test_le_e_atualiza_os_novos_campos(self):
         resposta = self.api.patch("/api/v1/usuarios/me/", {
-            "data_nascimento": "1990-05-17", "cpf": CPF_VALIDO, "endereco": "Rua A, 1",
+            "data_nascimento": "1990-05-17", "cpf": CPF_VALIDO, "telefone": "81999990000", "endereco": "Rua A, 1",
         }, format="json")
         self.assertEqual(resposta.status_code, 200, resposta.data)
         self.assertEqual(resposta.data["cpf"], "52998224725")
@@ -263,7 +275,9 @@ class PerfilPelaApiTests(TestCase):
         for cpf in ("123.456.789-00", OUTRO_CPF_VALIDO):
             resposta = self.api.patch("/api/v1/usuarios/me/", {"cpf": cpf}, format="json")
             self.assertEqual(resposta.status_code, 400, cpf)
-        self.assertEqual(self.api.patch("/api/v1/usuarios/me/", {"cpf": ""}, format="json").status_code, 200)
+        # CPF e telefone são obrigatórios: não podem ser apagados.
+        self.assertEqual(self.api.patch("/api/v1/usuarios/me/", {"cpf": ""}, format="json").status_code, 400)
+        self.assertEqual(self.api.patch("/api/v1/usuarios/me/", {"telefone": ""}, format="json").status_code, 400)
 
 
 class MostrarSenhaTests(TestCase):

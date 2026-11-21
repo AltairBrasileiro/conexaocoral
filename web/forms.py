@@ -363,6 +363,29 @@ class CaronaForm(forms.Form):
 
 
 # ------------------------------------------------------------- minha conta
+def _campo_telefone() -> forms.CharField:
+    return forms.CharField(
+        label="Telefone", max_length=20,
+        widget=forms.TextInput(attrs={"inputmode": "tel", "autocomplete": "tel", "placeholder": "(81) 99999-9999"}),
+        error_messages={"required": "Informe o seu telefone."},
+    )
+
+
+def _campo_cpf() -> forms.CharField:
+    return forms.CharField(
+        label="CPF", max_length=14,
+        widget=forms.TextInput(attrs={"inputmode": "numeric", "placeholder": "000.000.000-00"}),
+        error_messages={"required": "Informe o seu CPF."},
+    )
+
+
+def _limpar_telefone(valor: str) -> str:
+    # Aceita "(81) 99999-9999": guarda só os dígitos (e o "+" inicial, se houver).
+    valor = (valor or "").strip()
+    digitos = "".join(c for c in valor if c.isdigit())
+    return ("+" if valor.startswith("+") else "") + digitos if digitos else ""
+
+
 class PerfilForm(forms.Form):
     """Dados pessoais do usuário (as regras ficam no ``UsuarioService``)."""
 
@@ -383,14 +406,8 @@ class PerfilForm(forms.Form):
         widget=forms.EmailInput(attrs={"autocomplete": "email"}),
         error_messages={"required": "Informe o seu e-mail.", "invalid": "Informe um e-mail válido."},
     )
-    telefone = forms.CharField(
-        label="Telefone (opcional)", max_length=20, required=False,
-        widget=forms.TextInput(attrs={"inputmode": "tel", "autocomplete": "tel", "placeholder": "+5581999999999"}),
-    )
-    cpf = forms.CharField(
-        label="CPF (opcional)", max_length=14, required=False,
-        widget=forms.TextInput(attrs={"inputmode": "numeric", "placeholder": "000.000.000-00"}),
-    )
+    telefone = _campo_telefone()
+    cpf = _campo_cpf()
     endereco = forms.CharField(
         label="Endereço (opcional)", max_length=255, required=False,
         widget=forms.TextInput(attrs={"autocomplete": "street-address", "placeholder": "Rua, número, bairro, cidade - UF"}),
@@ -413,10 +430,7 @@ class PerfilForm(forms.Form):
         })
 
     def clean_telefone(self) -> str:
-        # Aceita "(81) 99999-9999": guarda só os dígitos (e o "+" inicial, se houver).
-        valor = self.cleaned_data["telefone"].strip()
-        digitos = "".join(c for c in valor if c.isdigit())
-        return ("+" if valor.startswith("+") else "") + digitos if digitos else ""
+        return _limpar_telefone(self.cleaned_data["telefone"])
 
 
 class FotoPerfilForm(forms.Form):
@@ -691,6 +705,8 @@ class CadastroForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}, format="%Y-%m-%d"),
         error_messages={"required": "Informe a sua data de nascimento.", "invalid": "Informe uma data válida."},
     )
+    telefone = _campo_telefone()
+    cpf = _campo_cpf()
     senha = _campo_senha(
         "Senha", "new-password",
         help_text="Pelo menos 8 caracteres; não pode ser só números nem parecida com o seu nome ou e-mail.",
@@ -702,6 +718,9 @@ class CadastroForm(forms.Form):
 
     def clean_email(self) -> str:
         return self.cleaned_data["email"].strip().lower()
+
+    def clean_telefone(self) -> str:
+        return _limpar_telefone(self.cleaned_data["telefone"])
 
     def clean(self):
         dados = super().clean()

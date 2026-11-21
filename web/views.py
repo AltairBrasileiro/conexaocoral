@@ -207,11 +207,13 @@ def cadastro(request: HttpRequest) -> HttpResponse:
             servico.validar_data_nascimento(dados["data_nascimento"])
             if servico.repositorio.email_em_uso(dados["email"]):
                 raise RegraNegocioError("Já existe uma conta com este e-mail.", campo="email")
+            telefone = servico.validar_telefone(dados["telefone"])
+            cpf = servico.exigir_cpf(Usuario(), dados["cpf"])
             # Valida a senha contra nome e e-mail antes de criar a conta.
             servico.validar_nova_senha(Usuario(nome=dados["nome"], email=dados["email"]), dados["senha"])
             usuario = servico.registrar(
                 email=dados["email"], password=dados["senha"], nome=dados["nome"].strip(),
-                data_nascimento=dados["data_nascimento"],
+                data_nascimento=dados["data_nascimento"], telefone=telefone, cpf=cpf,
             )
         except RegraNegocioError as erro:
             campo = "senha" if erro.campo == "nova_senha" else erro.campo
@@ -768,7 +770,6 @@ def _pagina_da_conta(request: HttpRequest, **formularios: Any) -> HttpResponse:
         "perfil_form": formularios.get("perfil_form") or PerfilForm.para_usuario(request.user),
         "foto_form": formularios.get("foto_form") or FotoPerfilForm(),
         "senha_form": formularios.get("senha_form") or TrocarSenhaForm(),
-        "dados_incompletos": request.user.data_nascimento is None,
         "reservas_carona": reservas_carona,
         "caronas_oferecidas": caronas_oferecidas,
         "filiacoes": filiacoes,

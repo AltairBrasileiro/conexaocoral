@@ -51,6 +51,13 @@
   <div class="faixa" aria-hidden="true"></div>
 </header>
 <main class="conteudo">
+  {% if user.is_authenticated and user.dados_pendentes and aba != "conta" %}
+  <div class="aviso-cadastro aviso-cadastro--topo" role="status">
+    <span class="icon">badge</span>
+    <span class="aviso-cadastro__texto"><strong>Atualize o seu cadastro.</strong> Falta informar {% include "web/_dados_pendentes.html" %}.</span>
+    <a class="botao botao--compacto" href="{% url 'web:minha-conta' %}">Atualizar dados</a>
+  </div>
+  {% endif %}
   {% block conteudo %}{% endblock %}
 </main>
 {% endblock %}

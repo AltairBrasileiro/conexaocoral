@@ -13,7 +13,7 @@ DOMINIOS_INSTAGRAM = frozenset({"instagram.com", "www.instagram.com"})
 
 validar_telefone = RegexValidator(
     regex=r"^\+?\d{10,15}$",
-    message="Informe o telefone apenas com dígitos (10 a 15), opcionalmente com '+'. Ex.: +5583999999999",
+    message="Informe o telefone com DDD. Ex.: (81) 99999-9999",
 )
 
 

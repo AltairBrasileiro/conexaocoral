@@ -1583,3 +1583,10 @@ body:has(.abas) .conteudo { padding-bottom: var(--altura-nav); }
 .festa-aniversario h2 { margin: 8px 0 4px; font-size: 20px; font-weight: 900; color: var(--branco); }
 .festa-aniversario p { margin: 0; }
 .festa-aniversario__email { display: inline-block; margin-top: 10px; padding: 5px 12px; border-radius: 30px; background: var(--branco); color: var(--vermelho); font-size: 13px; font-weight: 800; }
+
+/* ------------------------------------------------- Cadastro incompleto */
+.aviso-cadastro--topo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 960px; margin: 14px auto 0; padding: 12px 14px; border: 1.5px solid var(--cinza-borda); border-left: 5px solid var(--vermelho); border-radius: var(--raio); background: var(--branco); }
+.aviso-cadastro--topo > .icon { color: var(--vermelho); }
+.aviso-cadastro__texto { flex: 1 1 220px; font-size: 14px; }
+@media (max-width: 1000px) { .aviso-cadastro--topo { margin: 12px 16px 0; } }
+@media (max-width: 520px) { .aviso-cadastro--topo .botao { width: 100%; } }

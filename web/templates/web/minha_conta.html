@@ -9,8 +9,8 @@
   <p class="apoio">{{ user.nome }} · {{ user.email }} · {{ user|papel }}</p>
 
   <h2 class="secao" id="dados">Meus dados</h2>
-  {% if dados_incompletos %}
-  <div class="card linha"><span class="icon">info</span><span>Complete o seu cadastro: falta informar a <strong>data de nascimento</strong>.</span></div>
+  {% if user.dados_pendentes %}
+  <div class="card linha aviso-cadastro"><span class="icon">info</span><span>Complete o seu cadastro: falta informar {% include "web/_dados_pendentes.html" %}.</span></div>
   {% endif %}
 
   <div class="card card--padding conta-foto">
